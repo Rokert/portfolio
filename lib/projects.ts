@@ -48,10 +48,10 @@ export const projects: Project[] = [
     id: "makata-tv",
     title: "makata.tv",
     year: "2025–2026",
-    shortDesc: "Sitio del estudio con escena 3D scroll-driven y shader fire-sweep.",
+    shortDesc: "TV 3D interactiva con explosión de partículas, orbit + tilt y vista del sitio con shader FBM.",
     longDesc:
-      "Modelo de TV en GLTF con cinemática de explosión, shader fire-sweep y post-procesado con SelectiveBloom. La escena se construyó primero como app React/R3F standalone y luego se migró a Framer, embebida en un iframe sincronizado por postMessage.",
-    tags: ["React", "TypeScript", "Three.js", "R3F", "GSAP", "Framer", "Zustand"],
+      "TV retro en React Three Fiber con OrbitControls, sistema de partículas hot→naranja→azul en doble click y tilt suave con el mouse. Segunda vista integrada: UI del sitio makata.tv sobre un shader FBM con distorsión de mouse y efecto glitch.",
+    tags: ["React", "TypeScript", "Three.js", "R3F", "GLSL", "Framer", "Vercel"],
     demoType: "3d",
     url: "https://makata.tv",
     featured: true,
