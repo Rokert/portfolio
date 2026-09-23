@@ -444,7 +444,129 @@ function TV({ burstTrigger, onDoubleClick, mouseRef, orbitingRef }: TVProps) {
   );
 }
 
+// ── FBM shader (website view background) ──────────────────────────────────
+
+const VERT_WEB = /* glsl */ `
+  varying vec2 vUv;
+  void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+`;
+
+const FRAG_WEB = /* glsl */ `
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform vec2  uMouse;
+  uniform float uGlitch;
+
+  float hash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+  float noise(vec2 p) {
+    vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+  }
+  float fbm(vec2 p) {
+    float v=0.0,a=0.5;
+    for(int i=0;i<6;i++){v+=a*noise(p);p=p*2.1+vec2(1.7,9.2);a*=0.5;}
+    return v;
+  }
+  void main() {
+    vec2 uv = vUv;
+    float t  = uTime * 0.22;
+
+    // Mouse ripple
+    vec2 m01 = uMouse*0.5+0.5;
+    vec2 toM = uv - m01;
+    uv += normalize(toM+0.001)*exp(-length(toM)*2.8)*0.07;
+
+    // Glitch bands
+    if(uGlitch>0.0){
+      float by=floor(uv.y*18.0)/18.0;
+      uv.x += (hash(vec2(by,floor(uTime*40.0)))-0.5)*uGlitch*0.18;
+      uv.y += sin(uv.y*30.0+uTime*12.0)*uGlitch*0.012;
+    }
+
+    float n =fbm(uv*3.2+vec2(t*.5,t));
+    float n2=fbm(uv*2.0-vec2(t*.3,t*.8)+n*.5);
+    float n3=fbm(uv*5.0+vec2(t*.8,-t*.4)+n2*.3);
+
+    vec3 cD=vec3(.03,.01,.10),cB=vec3(.02,.04,.88),cM=vec3(.94,.0,.55),cP=vec3(1.,.4,.9);
+    vec3 col=mix(cD,cB,n2); col=mix(col,cM,n*.68);
+    col+=cP*smoothstep(.52,.80,n2)*.55+cP*smoothstep(.60,.90,n3)*.22;
+
+    // RGB glitch split
+    if(uGlitch>0.02){
+      float sh=(hash(vec2(floor(uv.y*14.),floor(uTime*25.)))-.5)*uGlitch*.06;
+      col.r=mix(col.r,mix(cD.r,cM.r,fbm((uv+vec2(sh,0.))*3.2+vec2(t*.5,t))*.68),uGlitch*.7);
+      col.b=mix(col.b,mix(cD.b,cB.b,fbm((uv-vec2(sh,0.))*3.2+vec2(t*.5,t))),uGlitch*.7);
+    }
+
+    vec2 vig=uv*(1.0-uv); col*=pow(vig.x*vig.y*13.0,0.18);
+    gl_FragColor=vec4(col,1.0);
+  }
+`;
+
+interface WebPlaneProps {
+  mouseRef:  React.MutableRefObject<[number, number]>;
+  glitchRef: React.MutableRefObject<number>;
+}
+
+function WebShaderPlane({ mouseRef, glitchRef }: WebPlaneProps) {
+  const matRef = useRef<THREE.ShaderMaterial>(null);
+  useFrame(({ clock }, dt) => {
+    const mat = matRef.current; if (!mat) return;
+    mat.uniforms.uTime.value = clock.getElapsedTime();
+    const [mx, my] = mouseRef.current;
+    const u = mat.uniforms.uMouse.value as THREE.Vector2;
+    u.x += (mx - u.x) * 0.07; u.y += (-my - u.y) * 0.07;
+    if (glitchRef.current > 0) {
+      glitchRef.current -= dt * 3.2;
+      mat.uniforms.uGlitch.value = Math.max(0, glitchRef.current);
+    } else { mat.uniforms.uGlitch.value = 0; }
+  });
+  return (
+    <mesh>
+      <planeGeometry args={[4, 3]} />
+      <shaderMaterial ref={matRef} vertexShader={VERT_WEB} fragmentShader={FRAG_WEB}
+        uniforms={{ uTime:{value:0}, uMouse:{value:new THREE.Vector2()}, uGlitch:{value:0} }} />
+    </mesh>
+  );
+}
+
+// Work cards (website view)
+function WorkCard({ title, tag, accent }: { title: string; tag: string; accent: string }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      className="rounded-md overflow-hidden cursor-pointer transition-all duration-200"
+      style={{
+        background: hov ? `${accent}18` : "rgba(255,255,255,0.04)",
+        border: `1px solid ${hov ? accent + "55" : "rgba(255,255,255,0.08)"}`,
+        transform: hov ? "scale(1.04)" : "scale(1)",
+        boxShadow: hov ? `0 0 14px ${accent}30` : "none",
+      }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
+      <div className="h-[46px] flex flex-col justify-between p-2">
+        <div className="w-3 h-3 rounded-sm" style={{ background: `${accent}44` }} />
+        <div>
+          <p className="text-[9px] font-mono leading-tight"
+            style={{ color: hov ? "#fff" : "rgba(255,255,255,0.55)" }}>{title}</p>
+          <p className="text-[8px] font-mono" style={{ color: `${accent}88` }}>{tag}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const WORK_CARDS = [
+  { title: "makata.tv",    tag: "R3F · GLSL",        accent: "#ec4899" },
+  { title: "Brand System", tag: "Motion · Identity",  accent: "#a855f7" },
+  { title: "3D Showreel",  tag: "Three.js · GSAP",    accent: "#3b82f6" },
+  { title: "Web App",      tag: "Next.js · API",      accent: "#10b981" },
+];
+
 // ── Camera default state ───────────────────────────────────────────────────
+
+type Phase = "tv" | "web";
 
 const CAM_DEFAULT  = new THREE.Vector3(0, 0, 5.2);
 const CAM_TARGET   = new THREE.Vector3(0, 0.25, 0);
@@ -455,16 +577,19 @@ type OCtrl = { enabled: boolean; target: THREE.Vector3; update(): void };
 // ── Scene ──────────────────────────────────────────────────────────────────
 
 interface SceneProps {
-  mouseRef: React.MutableRefObject<[number, number]>;
+  mouseRef:  React.MutableRefObject<[number, number]>;
+  phaseRef:  React.MutableRefObject<Phase>;
 }
 
-function Scene({ mouseRef }: SceneProps) {
+function Scene({ mouseRef, phaseRef }: SceneProps) {
   const [burstTrigger, setBurstTrigger] = useState(0);
   const ctrlRef  = useRef<any>(null);
   const orbiting = useRef(false);
   const idle     = useRef(0);
 
   useFrame(({ camera }, dt) => {
+    // reset idle while in web phase so auto-reset doesn't fire on return
+    if (phaseRef.current !== "tv") { idle.current = 0; return; }
     if (orbiting.current) return;
     idle.current += dt;
 
@@ -515,126 +640,222 @@ function Scene({ mouseRef }: SceneProps) {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export default function MakatatvDemo() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef  = useRef<[number, number]>([0, 0]);
-  const [hint, setHint] = useState(true);
+  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const mouseRef   = useRef<[number, number]>([0, 0]);
+  const glitchRef  = useRef(0);
+  const phaseRef   = useRef<Phase>("tv");
+  const [phase, setPhase] = useState<Phase>("tv");
+  const [webMounted, setWebMounted] = useState(false);
+  const [hint, setHint]   = useState(true);
   useAnimCanvas(canvasRef);
 
-  // Fade hint after 4 s
+  const toWeb = () => {
+    phaseRef.current = "web";
+    setWebMounted(true);
+    requestAnimationFrame(() => setPhase("web"));
+  };
+  const toTv = () => {
+    phaseRef.current = "tv";
+    setPhase("tv");
+    setTimeout(() => setWebMounted(false), 550);
+  };
+
   useEffect(() => {
     const t = setTimeout(() => setHint(false), 4000);
     return () => clearTimeout(t);
   }, []);
 
-  const stack = ["Next.js 14", "React Three Fiber", "GSAP", "Framer Motion", "TypeScript", "Vercel"];
+  const stack = ["Next.js 14", "R3F", "GSAP", "Framer Motion", "TypeScript", "Vercel"];
   const facts = [
-    { label: "Tipo",   value: "Agencia creativa"   },
-    { label: "Ciudad", value: "Medellín, CO"        },
-    { label: "Año",    value: "2023 – 2025"         },
-    { label: "Rol",    value: "Full-Stack Dev"       },
+    { label: "Tipo",   value: "Agencia creativa" },
+    { label: "Ciudad", value: "Medellín, CO"      },
+    { label: "Año",    value: "2023 – 2025"       },
+    { label: "Rol",    value: "Full-Stack Dev"     },
   ];
+
+  const trackMouse = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    mouseRef.current = [
+      (e.clientX - r.left) / r.width  * 2 - 1,
+      (e.clientY - r.top)  / r.height * 2 - 1,
+    ];
+  };
 
   return (
     <div
       className="relative w-full h-full min-h-[320px] overflow-hidden bg-[#08061a]"
-      onMouseMove={e => {
-        const r = e.currentTarget.getBoundingClientRect();
-        mouseRef.current = [
-          (e.clientX - r.left) / r.width  * 2 - 1,
-          (e.clientY - r.top)  / r.height * 2 - 1,
-        ];
-      }}
+      onMouseMove={trackMouse}
       onMouseLeave={() => { mouseRef.current = [0, 0]; }}
     >
-
-      {/* 1 — node graph background */}
-      <canvas
-        ref={canvasRef}
-        width={800} height={500}
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        style={{ opacity: 0.75, zIndex: 0 }}
-      />
-
-      {/* 2 — R3F TV with OrbitControls */}
-      <div className="absolute inset-0" style={{ zIndex: 10 }}>
-        <Canvas
-          camera={{ position: [0, 0, 5.2], fov: 40 }}
-          gl={{ alpha: true, antialias: true }}
-          style={{ background: "transparent" }}
-        >
-          <Scene mouseRef={mouseRef} />
-        </Canvas>
-      </div>
-
-      {/* 3 — interaction hint (fades after 4 s) */}
+      {/* ══════════════ TV PHASE ══════════════ */}
       <div
-        className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2.5 text-[9px] font-mono px-3 py-1 rounded-full border transition-opacity duration-700"
-        style={{
-          opacity: hint ? 1 : 0,
-          pointerEvents: "none",
-          zIndex: 25,
-          background: "rgba(255,255,255,0.04)",
-          borderColor: "rgba(255,255,255,0.08)",
-          color: "rgba(255,255,255,0.28)",
-        }}
+        className="absolute inset-0 transition-opacity duration-500"
+        style={{ opacity: phase === "tv" ? 1 : 0, pointerEvents: phase === "tv" ? "auto" : "none", zIndex: 1 }}
       >
-        <span>arrastrar · zoom · doble click</span>
+        {/* Node-graph bg */}
+        <canvas
+          ref={canvasRef}
+          width={800} height={500}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ opacity: 0.75 }}
+        />
+
+        {/* R3F TV */}
+        <div className="absolute inset-0" style={{ zIndex: 0 }}>
+          <Canvas
+            camera={{ position: [0, 0, 5.2], fov: 40 }}
+            gl={{ alpha: true, antialias: true }}
+            style={{ background: "transparent" }}
+          >
+            <Scene mouseRef={mouseRef} phaseRef={phaseRef} />
+          </Canvas>
+        </div>
+
+        {/* Orbit hint */}
+        <div
+          className="absolute top-3 left-1/2 -translate-x-1/2 text-[9px] font-mono px-3 py-1 rounded-full border transition-opacity duration-700 pointer-events-none"
+          style={{
+            opacity: hint ? 1 : 0, zIndex: 10,
+            background: "rgba(255,255,255,0.04)",
+            borderColor: "rgba(255,255,255,0.08)",
+            color: "rgba(255,255,255,0.28)",
+          }}
+        >
+          arrastrar · zoom · doble click
+        </div>
+
+        {/* Bottom brand overlay */}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-4" style={{ zIndex: 20, pointerEvents: "auto" }}>
+          <div className="grid grid-cols-4 gap-x-3 mb-2">
+            {facts.map(({ label, value }) => (
+              <div key={label} className="flex flex-col">
+                <span className="text-[8px] font-mono text-white/22 uppercase tracking-widest leading-tight">{label}</span>
+                <span className="text-[10px] font-mono text-white/50 leading-tight">{value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1 mb-2.5">
+            {stack.map(s => (
+              <span key={s} className="text-[8px] font-mono px-1.5 py-0.5 rounded-full border"
+                style={{ background:"rgba(180,80,255,0.08)", borderColor:"rgba(180,80,255,0.22)", color:"rgba(210,150,255,0.7)" }}>
+                {s}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center justify-between">
+            <a
+              href="https://makata.tv" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-full transition-all"
+              style={{ background:"rgba(160,60,255,0.18)", border:"1px solid rgba(180,80,255,0.40)", color:"#d080ff" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(160,60,255,0.28)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "rgba(160,60,255,0.18)")}
+            >
+              <ExternalLink size={9} /> Abrir makata.tv
+            </a>
+
+            {/* Switch to website view */}
+            <button
+              type="button"
+              onClick={() => toWeb()}
+              className="flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-full transition-all"
+              style={{ background:"rgba(236,72,153,0.12)", border:"1px solid rgba(236,72,153,0.30)", color:"rgba(244,114,182,0.8)", cursor:"pointer", pointerEvents:"auto" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(236,72,153,0.22)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "rgba(236,72,153,0.12)")}
+            >
+              ↓ sitio web
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 4 — brand overlay (bottom strip) */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pb-4" style={{ zIndex: 20 }}>
-
-        {/* Facts grid */}
-        <div className="grid grid-cols-4 gap-x-3 mb-2">
-          {facts.map(({ label, value }) => (
-            <div key={label} className="flex flex-col">
-              <span className="text-[8px] font-mono text-white/22 uppercase tracking-widest leading-tight">{label}</span>
-              <span className="text-[10px] font-mono text-white/50 leading-tight">{value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Stack badges */}
-        <div className="flex flex-wrap gap-1 mb-2.5">
-          {stack.map(s => (
-            <span key={s} className="text-[8px] font-mono px-1.5 py-0.5 rounded-full border"
-              style={{
-                background: "rgba(180,80,255,0.08)",
-                borderColor: "rgba(180,80,255,0.22)",
-                color: "rgba(210,150,255,0.7)",
-              }}>
-              {s}
-            </span>
-          ))}
-        </div>
-
-        {/* CTA row */}
-        <div className="flex items-center justify-between">
-          <a
-            href="https://makata.tv"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-full transition-all"
-            style={{
-              background: "rgba(160,60,255,0.18)",
-              border: "1px solid rgba(180,80,255,0.40)",
-              color: "#d080ff",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(160,60,255,0.28)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "rgba(160,60,255,0.18)")}
+      {/* ══════════════ WEBSITE PHASE ══════════════ */}
+      {webMounted && (
+      <div
+        className="absolute inset-0 transition-opacity duration-500"
+        style={{ opacity: phase === "web" ? 1 : 0, pointerEvents: phase === "web" ? "auto" : "none",
+          zIndex: 2, background: "#030109", cursor: "crosshair" }}
+        onClick={() => { glitchRef.current = 1.0; }}
+      >
+        {/* FBM shader bg */}
+        <div className="absolute inset-0">
+          <Canvas
+            camera={{ position: [0, 0, 1.52], fov: 60 }}
+            gl={{ antialias: true }}
+            style={{ background: "transparent" }}
           >
-            <ExternalLink size={9} /> Abrir makata.tv
-          </a>
+            <WebShaderPlane mouseRef={mouseRef} glitchRef={glitchRef} />
+          </Canvas>
+        </div>
 
-          <div className="flex items-center gap-1.5 text-[8px] font-mono"
-            style={{ color: "rgba(255,255,255,0.2)" }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{ background: "rgba(255,106,0,0.6)" }} />
-            doble click → explotar
+        {/* Website UI overlay */}
+        <div className="absolute inset-0 flex flex-col pointer-events-none" style={{ zIndex: 10 }}>
+
+          {/* Nav */}
+          <div className="flex items-center justify-between px-4 py-2 shrink-0 pointer-events-auto"
+            style={{ background: "linear-gradient(180deg,rgba(3,1,9,.82) 0%,transparent 100%)" }}>
+            {/* Back button embedded in nav */}
+            <button
+              type="button"
+              className="flex items-center gap-1.5 text-[9px] font-mono px-2.5 py-1 rounded-full transition-all"
+              style={{ background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.14)", color:"rgba(255,255,255,0.65)", cursor:"pointer" }}
+              onClick={e => { e.stopPropagation(); toTv(); }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.14)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+            >
+              ← TV
+            </button>
+            <span className="text-[11px] font-bold tracking-[0.22em] text-white/85">MAKATA</span>
+            <div className="flex gap-4 text-[9px] font-mono text-white/30">
+              <span>Work</span><span>About</span><span>Contact</span>
+              <span className="text-pink-400/45">↗</span>
+            </div>
+          </div>
+
+          {/* Hero */}
+          <div className="flex-1 flex flex-col items-center justify-center px-6 gap-2">
+            <div className="w-5 h-5 rounded-full mb-1"
+              style={{ background:"radial-gradient(circle,rgba(240,0,140,.5) 0%,transparent 70%)", boxShadow:"0 0 14px rgba(240,0,140,.4)" }} />
+            <h1 className="text-center font-black leading-[1.12] tracking-tight"
+              style={{ fontSize:"clamp(22px,5vw,34px)", color:"#fff", textShadow:"0 0 40px rgba(240,0,140,.45)" }}>
+              Creative<br />Development
+            </h1>
+            <h1 className="text-center font-black leading-[1.12] tracking-tight -mt-0.5"
+              style={{ fontSize:"clamp(22px,5vw,34px)", color:"rgba(255,255,255,0.22)" }}>
+              Studio.
+            </h1>
+            <div className="flex items-center gap-3 mt-1">
+              <span className="text-[9px] font-mono text-pink-400/50">Medellín, CO</span>
+              <span className="w-1 h-1 rounded-full bg-white/15" />
+              <span className="text-[9px] font-mono text-white/28">2023 – 2024</span>
+            </div>
+            <a
+              href="https://makata.tv" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-[9px] font-mono px-3 py-1.5 rounded-full mt-1 transition-all pointer-events-auto"
+              style={{ background:"rgba(236,72,153,.15)", border:"1px solid rgba(236,72,153,.38)", color:"#f472b6" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(236,72,153,.25)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "rgba(236,72,153,.15)")}
+              onClick={e => e.stopPropagation()}
+            >
+              <ExternalLink size={8} /> makata.tv
+            </a>
+          </div>
+
+          {/* Work grid */}
+          <div className="shrink-0 px-5 pb-4 pointer-events-auto" onClick={e => e.stopPropagation()}>
+            <p className="text-[8px] font-mono text-white/20 uppercase tracking-widest mb-1.5">Selected Work</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {WORK_CARDS.map(w => <WorkCard key={w.title} {...w} />)}
+            </div>
+          </div>
+
+          {/* Tech hint */}
+          <div className="absolute bottom-2 right-4 text-[8px] font-mono text-white/18 pointer-events-none">
+            click → glitch · hover → distort
           </div>
         </div>
 
       </div>
+      )}
     </div>
   );
 }

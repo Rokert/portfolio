@@ -93,17 +93,6 @@ export const projects: Project[] = [
     color: "#f59e0b",
   },
   {
-    id: "makata-website",
-    title: "Makata Website",
-    year: "2023–2024",
-    shortDesc: "Sitio del estudio con shaders GLSL propios y animaciones scroll-driven.",
-    longDesc:
-      "Versión anterior del sitio del estudio con shaders GLSL custom, animaciones scroll-driven y post-procesado. Precursora directa de makata.tv.",
-    tags: ["Next.js", "TypeScript", "Three.js", "GLSL", "GSAP"],
-    demoType: "shader",
-    color: "#ec4899",
-  },
-  {
     id: "framer-cms-api",
     title: "Framer CMS API",
     year: "2026",
