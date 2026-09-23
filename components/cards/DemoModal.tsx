@@ -6,7 +6,7 @@ import { X, ExternalLink } from "lucide-react";
 import type { Project } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
-const demoComponents: Record<string, React.LazyExoticComponent<() => React.JSX.Element>> = {
+const demoComponents: Record<string, React.LazyExoticComponent<() => React.JSX.Element | null>> = {
   trove: lazy(() => import("@/components/demos/TroveDemo")),
   "makata-tv": lazy(() => import("@/components/demos/MakatatvDemo")),
   larkboard: lazy(() => import("@/components/demos/LarkboardDemo")),
