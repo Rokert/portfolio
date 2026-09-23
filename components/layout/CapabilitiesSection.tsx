@@ -36,9 +36,9 @@ const CAPS = [
     n: "04",
     titleES: "Desarrollo con IA",
     titleEN: "AI-Assisted Dev",
-    descES: "Integro Claude, Gemini y Copilot en el flujo de trabajo para entregar más rápido sin sacrificar calidad — generación de código, revisión de arquitectura y QA asistido.",
-    descEN: "I integrate Claude, Gemini and Copilot into the workflow to ship faster without cutting corners — code generation, architecture review and AI-assisted QA.",
-    tags: ["Claude", "Gemini", "Copilot", "Cursor"],
+    descES: "IA integrada en todo el flujo: Claude Code para desarrollo, Cursor como IDE, v0 para prototipar UI, ChatGPT y Gemini para investigación, Midjourney para assets visuales.",
+    descEN: "AI across the whole workflow: Claude Code for development, Cursor as IDE, v0 for UI prototyping, ChatGPT and Gemini for research, Midjourney for visual assets.",
+    tags: ["Claude", "ChatGPT", "Gemini", "Copilot", "Cursor", "v0", "Midjourney"],
     color: "#f59e0b",
   },
 ];
