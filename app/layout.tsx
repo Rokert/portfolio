@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Julian — Full-Stack / Creative Developer",
+  title: "Julian — Game Dev / Creative Developer",
   description:
-    "Portfolio de Julian, Full-Stack y Creative Developer en Makata Studio. Proyectos de WebGPU, Three.js, iOS, e-commerce y herramientas creativas.",
+    "Portfolio de Julian, Game Dev y Creative Developer en Makata Studio. Proyectos de WebGPU, Three.js, Unity, iOS, e-commerce y herramientas creativas.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[--background] text-[--foreground]">
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );

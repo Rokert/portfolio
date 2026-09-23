@@ -6,6 +6,7 @@ import { ExternalLink, Play } from "lucide-react";
 import type { Project } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { DemoModal } from "@/components/cards/DemoModal";
+import { useLang } from "@/context/LanguageContext";
 
 interface ProjectCardProps {
   project: Project;
@@ -14,6 +15,8 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, index }: ProjectCardProps) {
   const [open, setOpen] = useState(false);
+  const { lang } = useLang();
+  const shortDesc = lang === "EN" && project.shortDescEN ? project.shortDescEN : project.shortDesc;
 
   return (
     <>
@@ -65,7 +68,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
 
         {/* Description */}
         <p className="text-sm text-[--foreground]/60 leading-relaxed line-clamp-2">
-          {project.shortDesc}
+          {shortDesc}
         </p>
 
         {/* Tags */}

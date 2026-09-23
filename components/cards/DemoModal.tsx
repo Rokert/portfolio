@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink } from "lucide-react";
 import type { Project } from "@/lib/projects";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/context/LanguageContext";
+import { UI } from "@/lib/i18n";
 
 const demoComponents: Record<string, React.LazyExoticComponent<() => React.JSX.Element | null>> = {
   trove: lazy(() => import("@/components/demos/TroveDemo")),
@@ -27,6 +29,9 @@ interface DemoModalProps {
 }
 
 export function DemoModal({ project, open, onClose }: DemoModalProps) {
+  const { lang } = useLang();
+  const t = UI[lang];
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     if (open) document.addEventListener("keydown", handleKey);
@@ -39,6 +44,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
   }, [open]);
 
   const DemoComponent = demoComponents[project.id];
+  const description = lang === "EN" && project.longDescEN ? project.longDescEN : project.longDesc;
 
   return (
     <AnimatePresence>
@@ -93,7 +99,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
                     className="flex items-center gap-1.5 text-xs text-[--foreground]/50 hover:text-[--foreground] transition-colors px-3 py-1.5 rounded-lg border border-[--border] hover:border-[--foreground]/20"
                   >
                     <ExternalLink size={12} />
-                    Ver sitio
+                    {t.visitSite}
                   </a>
                 )}
                 <button
@@ -117,14 +123,14 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
                           className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
                           style={{ borderColor: `${project.color} transparent transparent transparent` }}
                         />
-                        <span className="text-xs font-mono">Cargando demo…</span>
+                        <span className="text-xs font-mono">{t.loadingDemo}</span>
                       </div>
                     }
                   >
                     <DemoComponent />
                   </Suspense>
                 ) : (
-                  <PlaceholderDemo project={project} />
+                  <PlaceholderDemo project={project} label={t.demoPending} />
                 )}
               </div>
 
@@ -132,16 +138,16 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
               <div className="w-full lg:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-[--border] p-6 overflow-y-auto flex flex-col gap-5">
                 <div>
                   <h3 className="text-xs font-mono text-[--foreground]/40 uppercase tracking-widest mb-2">
-                    Descripción
+                    {t.description}
                   </h3>
                   <p className="text-sm text-[--foreground]/70 leading-relaxed">
-                    {project.longDesc}
+                    {description}
                   </p>
                 </div>
 
                 <div>
                   <h3 className="text-xs font-mono text-[--foreground]/40 uppercase tracking-widest mb-3">
-                    Stack
+                    {t.stack}
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
                     {project.tags.map((tag) => (
@@ -163,7 +169,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
   );
 }
 
-function PlaceholderDemo({ project }: { project: Project }) {
+function PlaceholderDemo({ project, label }: { project: Project; label: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
       <div
@@ -173,7 +179,7 @@ function PlaceholderDemo({ project }: { project: Project }) {
         {project.demoType === "video" ? "▶" : project.demoType === "3d" ? "◈" : "⬡"}
       </div>
       <div>
-        <p className="text-sm text-[--foreground]/50">Demo en construcción</p>
+        <p className="text-sm text-[--foreground]/50">{label}</p>
         <p className="text-xs text-[--foreground]/30 mt-1 font-mono">{project.title}</p>
       </div>
     </div>

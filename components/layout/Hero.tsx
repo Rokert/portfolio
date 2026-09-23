@@ -2,9 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useLang } from "@/context/LanguageContext";
+import { UI } from "@/lib/i18n";
 
 export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { lang, setLang } = useLang();
+  const t = UI[lang];
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -13,7 +17,7 @@ export function Hero() {
     if (!ctx) return;
 
     let raf: number;
-    let t = 0;
+    let time = 0;
 
     const resize = () => {
       canvas.width = canvas.offsetWidth * devicePixelRatio;
@@ -27,22 +31,22 @@ export function Hero() {
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
       ctx.clearRect(0, 0, w, h);
-      t += 0.004;
+      time += 0.004;
 
       const numLines = 6;
       for (let i = 0; i < numLines; i++) {
-        const y = h * (0.2 + i * 0.15) + Math.sin(t + i * 0.7) * 20;
+        const y = h * (0.2 + i * 0.15) + Math.sin(time + i * 0.7) * 20;
         const grad = ctx.createLinearGradient(0, 0, w, 0);
         grad.addColorStop(0, "transparent");
         grad.addColorStop(
-          0.3 + Math.sin(t * 0.8 + i) * 0.2,
+          0.3 + Math.sin(time * 0.8 + i) * 0.2,
           `hsla(${90 + i * 15}, 80%, 60%, 0.06)`
         );
         grad.addColorStop(1, "transparent");
         ctx.beginPath();
         ctx.moveTo(0, y);
         for (let x = 0; x <= w; x += 4) {
-          ctx.lineTo(x, y + Math.sin(x * 0.008 + t + i) * 8);
+          ctx.lineTo(x, y + Math.sin(x * 0.008 + time + i) * 8);
         }
         ctx.strokeStyle = grad;
         ctx.lineWidth = 1;
@@ -74,7 +78,14 @@ export function Hero() {
           className="flex items-center gap-2 text-xs font-mono text-[--foreground]/40 border border-[--border] rounded-full px-4 py-1.5"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[--accent] animate-pulse" />
-          Makata Studio · Medellín, Colombia
+          {t.badge}
+          <span className="mx-1 text-[--foreground]/20">·</span>
+          <button
+            onClick={() => setLang(lang === "ES" ? "EN" : "ES")}
+            className="font-mono text-[10px] px-2 py-0.5 rounded-full border border-[--border] hover:border-[--accent]/50 hover:text-[--accent] transition-colors"
+          >
+            {lang === "ES" ? "EN" : "ES"}
+          </button>
         </motion.div>
 
         <motion.h1
@@ -83,7 +94,7 @@ export function Hero() {
           transition={{ duration: 0.7, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
           className="text-5xl md:text-7xl font-bold leading-[1.05] tracking-tight"
         >
-          Full-Stack
+          Game Dev &amp;
           <br />
           <span className="text-[--accent]">Creative</span> Dev
         </motion.h1>
@@ -94,8 +105,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
           className="text-base md:text-lg text-[--foreground]/50 max-w-xl leading-relaxed"
         >
-          Desarrollo productos que viven en el cruce entre código y experiencia visual —
-          motores 3D en el navegador, apps iOS, e-commerce headless y herramientas creativas.
+          {t.tagline}
         </motion.p>
 
         <motion.div
@@ -108,13 +118,13 @@ export function Hero() {
             href="mailto:rokert34@gmail.com"
             className="px-5 py-2.5 rounded-full bg-[--accent] text-black font-semibold text-sm hover:bg-[--accent]/90 transition-colors"
           >
-            Contactar
+            {t.contact}
           </a>
           <a
             href="#proyectos"
             className="px-5 py-2.5 rounded-full border border-[--border] text-sm hover:border-[--foreground]/30 transition-colors"
           >
-            Ver proyectos ↓
+            {t.viewProjects}
           </a>
         </motion.div>
       </div>
