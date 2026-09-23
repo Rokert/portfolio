@@ -64,7 +64,7 @@ export function Hero() {
   }, []);
 
   return (
-    <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-6">
+    <section className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden px-6">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -129,9 +129,6 @@ export function Hero() {
         </motion.div>
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-20">
-        <div className="w-px h-8 bg-[--foreground]" />
-      </div>
     </section>
   );
 }
