@@ -14,6 +14,10 @@ const demoComponents: Record<string, React.LazyExoticComponent<() => React.JSX.E
   peer: lazy(() => import("@/components/demos/PeerDemo")),
   rhezo: lazy(() => import("@/components/demos/RhezoDemo")),
   "makata-website": lazy(() => import("@/components/demos/MakataWebsiteDemo")),
+  infini: lazy(() => import("@/components/demos/InfiniDemo")),
+  wemoms: lazy(() => import("@/components/demos/WeMomsDemo")),
+  meltyn: lazy(() => import("@/components/demos/MeltynDemo")),
+  cosmodinos: lazy(() => import("@/components/demos/CosmodinosDemo")),
 };
 
 interface DemoModalProps {
