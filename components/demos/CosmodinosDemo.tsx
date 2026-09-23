@@ -3,40 +3,58 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Screen = "lobby" | "game";
+type Screen   = "lobby" | "game";
 type GameMode = "Gem Smash" | "Shurikens";
 
 const ROOMS = [
-  { id: "room-01", name: "Sala Galáctica", players: 8, max: 10, mode: "Gem Smash" as GameMode, ping: 22 },
-  { id: "room-02", name: "Arena Cosmo", players: 15, max: 20, mode: "Shurikens" as GameMode, ping: 45 },
-  { id: "room-03", name: "Zona Júpiter", players: 3, max: 10, mode: "Gem Smash" as GameMode, ping: 18 },
-  { id: "room-04", name: "Nebulosa Beta", players: 20, max: 20, mode: "Shurikens" as GameMode, ping: 67 },
+  { id: "room-01", name: "Sala Galáctica", players: 8,  max: 10, mode: "Gem Smash"  as GameMode, ping: 22 },
+  { id: "room-02", name: "Arena Cosmo",    players: 15, max: 20, mode: "Shurikens"  as GameMode, ping: 45 },
+  { id: "room-03", name: "Zona Júpiter",   players: 3,  max: 10, mode: "Gem Smash"  as GameMode, ping: 18 },
+  { id: "room-04", name: "Nebulosa Beta",  players: 20, max: 20, mode: "Shurikens"  as GameMode, ping: 67 },
 ];
 
-const DINO_COLORS = ["#f87171", "#60a5fa", "#34d399", "#fbbf24", "#a78bfa", "#f472b6"];
-const DINO_NAMES = ["RaptorX", "SaurBot", "TRex99", "DinoKing", "VelociZ", "StegaBro"];
+const DINO_COLORS = ["#f87171","#60a5fa","#34d399","#fbbf24","#a78bfa","#f472b6"];
+const DINO_NAMES  = ["RaptorX","SaurBot","TRex99","DinoKing","VelociZ","StegaBro"];
 
-interface Gem { id: number; x: number; y: number; color: string; collected: boolean }
-interface Player { id: number; x: number; y: number; color: string; score: number; name: string }
+interface Gem        { id: number; x: number; y: number; color: string; collected: boolean }
+interface Player     { id: number; x: number; y: number; color: string; score: number; name: string; vx: number; vy: number }
+interface Popup      { id: number; x: number; y: number; alpha: number }
+interface Star       { x: number; y: number; r: number; phase: number }
+interface ScoreEntry { name: string; color: string; score: number }
 
-function GameCanvas({ mode }: { mode: GameMode }) {
+/* ── Game canvas ─────────────────────────────────────────────────────── */
+function GameCanvas({ mode, myColor, myName, onScores }: {
+  mode: GameMode;
+  myColor: string;
+  myName: string;
+  onScores: (s: ScoreEntry[]) => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef({
-    gems: [] as Gem[],
+  const stateRef  = useRef({
     players: [] as Player[],
-    t: 0,
+    gems:    [] as Gem[],
+    popups:  [] as Popup[],
+    stars:   [] as Star[],
+    t: 0, popupId: 0,
   });
 
   useEffect(() => {
-    const state = stateRef.current;
-    state.players = Array.from({ length: 6 }, (_, i) => ({
-      id: i, x: 60 + (i % 3) * 100, y: 60 + Math.floor(i / 3) * 100,
-      color: DINO_COLORS[i], score: 0, name: DINO_NAMES[i],
+    const s = stateRef.current;
+    s.players = DINO_NAMES.map((name, i) => ({
+      id: i, name: i === 0 ? myName : name, color: i === 0 ? myColor : DINO_COLORS[i],
+      x: 50 + (i % 3) * 110, y: 55 + Math.floor(i / 3) * 110,
+      vx: 0, vy: 0, score: 0,
     }));
-    state.gems = Array.from({ length: 12 }, (_, i) => ({
-      id: i, x: 30 + (i % 6) * 55, y: 30 + Math.floor(i / 6) * 80,
-      color: ["#fbbf24", "#60a5fa", "#34d399"][i % 3], collected: false,
+    s.gems = Array.from({ length: 10 }, (_, i) => ({
+      id: i, collected: false,
+      x: 30 + (i % 5) * 65, y: 35 + Math.floor(i / 5) * 90,
+      color: ["#fbbf24","#60a5fa","#34d399"][i % 3],
     }));
+    s.stars = Array.from({ length: 55 }, () => ({
+      x: Math.random() * 380, y: Math.random() * 230,
+      r: Math.random() * 1.2 + 0.3, phase: Math.random() * Math.PI * 2,
+    }));
+    s.t = 0; s.popups = [];
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -44,218 +62,341 @@ function GameCanvas({ mode }: { mode: GameMode }) {
     if (!ctx) return;
 
     let raf: number;
+    let lastScoreEmit = 0;
+
     const tick = () => {
-      state.t += 0.04;
-      const w = canvas.width, h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
+      s.t += 0.04;
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
 
-      // Background grid
-      ctx.strokeStyle = "rgba(255,255,255,0.04)";
+      /* ── Background ── */
+      ctx.fillStyle = "#070c16";
+      ctx.fillRect(0, 0, W, H);
+
+      // Grid
+      ctx.strokeStyle = "rgba(255,255,255,0.03)";
       ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-      for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+      for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+      for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
 
+      // Stars
+      s.stars.forEach(st => {
+        const a = 0.25 + Math.sin(s.t * 1.5 + st.phase) * 0.2;
+        ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200,220,255,${a})`; ctx.fill();
+      });
+
+      /* ── Mode-specific objects ── */
       if (mode === "Gem Smash") {
-        // Draw gems
-        state.gems.forEach((gem) => {
+        s.gems.forEach(gem => {
           if (gem.collected) return;
-          const pulse = 1 + Math.sin(state.t * 2 + gem.id) * 0.15;
-          ctx.beginPath();
-          ctx.moveTo(gem.x, gem.y - 8 * pulse);
-          ctx.lineTo(gem.x + 6 * pulse, gem.y);
-          ctx.lineTo(gem.x, gem.y + 6 * pulse);
-          ctx.lineTo(gem.x - 6 * pulse, gem.y);
-          ctx.closePath();
-          ctx.fillStyle = gem.color;
-          ctx.globalAlpha = 0.85;
-          ctx.fill();
-          ctx.globalAlpha = 1;
+          const pulse = 1 + Math.sin(s.t * 2.5 + gem.id) * 0.12;
+          const sz = 7 * pulse;
 
           // Glow
-          ctx.shadowColor = gem.color;
-          ctx.shadowBlur = 8;
-          ctx.stroke();
-          ctx.shadowBlur = 0;
+          const grad = ctx.createRadialGradient(gem.x, gem.y, 0, gem.x, gem.y, sz * 2.5);
+          grad.addColorStop(0, gem.color + "55");
+          grad.addColorStop(1, "transparent");
+          ctx.beginPath(); ctx.arc(gem.x, gem.y, sz * 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = grad; ctx.fill();
+
+          // Diamond
+          ctx.beginPath();
+          ctx.moveTo(gem.x, gem.y - sz);
+          ctx.lineTo(gem.x + sz * 0.65, gem.y);
+          ctx.lineTo(gem.x, gem.y + sz * 0.8);
+          ctx.lineTo(gem.x - sz * 0.65, gem.y);
+          ctx.closePath();
+          ctx.fillStyle = gem.color; ctx.globalAlpha = 0.9; ctx.fill();
+          // Shine
+          ctx.beginPath();
+          ctx.moveTo(gem.x - sz * 0.2, gem.y - sz * 0.6);
+          ctx.lineTo(gem.x + sz * 0.3, gem.y - sz * 0.1);
+          ctx.lineTo(gem.x - sz * 0.1, gem.y - sz * 0.1);
+          ctx.closePath();
+          ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fill();
+          ctx.globalAlpha = 1;
         });
       } else {
-        // Shurikens flying
-        for (let i = 0; i < 4; i++) {
-          const sx = (w * 0.2 + i * w * 0.2 + state.t * 60 * (i % 2 === 0 ? 1 : -1)) % w;
-          const sy = h * 0.3 + Math.sin(state.t + i * 1.2) * h * 0.25;
-          ctx.save();
-          ctx.translate(sx, sy);
-          ctx.rotate(state.t * 3 + i);
-          ctx.fillStyle = "#e2e8f0";
-          ctx.globalAlpha = 0.7;
+        for (let i = 0; i < 5; i++) {
+          const sx = (W * 0.1 + i * W * 0.18 + s.t * 55 * (i % 2 === 0 ? 1 : -1) + W * 10) % W;
+          const sy = H * 0.3 + Math.sin(s.t + i * 1.3) * H * 0.28;
+          ctx.save(); ctx.translate(sx, sy); ctx.rotate(s.t * 3.5 + i);
+          ctx.globalAlpha = 0.75;
           for (let j = 0; j < 4; j++) {
             ctx.rotate(Math.PI / 2);
-            ctx.beginPath();
-            ctx.moveTo(0, -10);
-            ctx.lineTo(4, 0);
-            ctx.lineTo(0, 4);
-            ctx.lineTo(-4, 0);
-            ctx.closePath();
-            ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0,-11); ctx.lineTo(4,0); ctx.lineTo(0,5); ctx.lineTo(-4,0); ctx.closePath();
+            ctx.fillStyle = j % 2 === 0 ? "#e2e8f0" : "#94a3b8"; ctx.fill();
           }
-          ctx.globalAlpha = 1;
-          ctx.restore();
+          ctx.globalAlpha = 1; ctx.restore();
         }
       }
 
-      // Move players toward targets
-      state.players.forEach((p, i) => {
-        const target = state.gems[(i * 2 + Math.floor(state.t * 0.5)) % state.gems.length];
-        if (target && !target.collected) {
-          p.x += (target.x - p.x) * 0.02;
-          p.y += (target.y - p.y) * 0.02;
-          if (Math.hypot(target.x - p.x, target.y - p.y) < 10) {
-            target.collected = true;
-            p.score += 10;
-            setTimeout(() => { target.collected = false; target.x = 20 + Math.random() * (w - 40); target.y = 20 + Math.random() * (h - 40); }, 1500);
+      /* ── Players ── */
+      s.players.forEach((p, i) => {
+        if (mode === "Gem Smash") {
+          const target = s.gems.find(g => !g.collected) ?? s.gems[(i * 2) % s.gems.length];
+          if (target) {
+            const dx = target.x - p.x, dy = target.y - p.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 1) { p.vx += dx / dist * 0.18; p.vy += dy / dist * 0.18; }
+            p.vx *= 0.88; p.vy *= 0.88;
+            p.x += p.vx; p.y += p.vy;
+            p.x = Math.max(14, Math.min(W - 14, p.x));
+            p.y = Math.max(14, Math.min(H - 14, p.y));
+            if (!target.collected && Math.hypot(target.x - p.x, target.y - p.y) < 12) {
+              target.collected = true;
+              p.score += 10;
+              s.popups.push({ id: ++s.popupId, x: target.x, y: target.y - 6, alpha: 1 });
+              setTimeout(() => {
+                target.collected = false;
+                target.x = 20 + Math.random() * (W - 40);
+                target.y = 20 + Math.random() * (H - 40);
+              }, 1400);
+            }
           }
         } else {
-          p.x += Math.sin(state.t * 0.8 + i * 1.3) * 0.8;
-          p.y += Math.cos(state.t * 0.6 + i * 0.9) * 0.8;
-          p.x = Math.max(20, Math.min(w - 20, p.x));
-          p.y = Math.max(20, Math.min(h - 20, p.y));
+          p.x += Math.sin(s.t * 0.7 + i * 1.4) * 0.9;
+          p.y += Math.cos(s.t * 0.5 + i * 1.1) * 0.9;
+          p.x = Math.max(14, Math.min(W - 14, p.x));
+          p.y = Math.max(14, Math.min(H - 14, p.y));
         }
 
-        // Draw dino (simple circle + eyes)
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.fill();
-        ctx.strokeStyle = "rgba(0,0,0,0.3)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        // Body glow
+        const grad2 = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 12);
+        grad2.addColorStop(0, p.color + "55"); grad2.addColorStop(1, "transparent");
+        ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+        ctx.fillStyle = grad2; ctx.fill();
+
+        // Body
+        ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+        ctx.fillStyle = p.color; ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 1; ctx.stroke();
 
         // Eyes
         ctx.fillStyle = "#fff";
-        ctx.beginPath(); ctx.arc(p.x - 3, p.y - 2, 2, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x + 3, p.y - 2, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x - 3, p.y - 2, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x + 3, p.y - 2, 2.2, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#111";
-        ctx.beginPath(); ctx.arc(p.x - 3, p.y - 2, 1, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x + 3, p.y - 2, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x - 3, p.y - 2, 1.1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x + 3, p.y - 2, 1.1, 0, Math.PI * 2); ctx.fill();
 
         // Name tag
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.font = "7px monospace";
+        ctx.fillStyle = i === 0 ? "#fff" : "rgba(255,255,255,0.5)";
+        ctx.font = `${i === 0 ? "bold " : ""}7px monospace`;
         ctx.textAlign = "center";
-        ctx.fillText(p.name, p.x, p.y - 14);
+        ctx.fillText(p.name, p.x, p.y - 15);
       });
+
+      /* ── Score popups ── */
+      s.popups = s.popups.filter(pop => {
+        pop.y -= 0.7; pop.alpha -= 0.022;
+        if (pop.alpha <= 0) return false;
+        ctx.globalAlpha = pop.alpha;
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "bold 9px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("+10", pop.x, pop.y);
+        ctx.globalAlpha = 1;
+        return true;
+      });
+
+      // Emit scores periodically
+      if (s.t - lastScoreEmit > 0.5) {
+        lastScoreEmit = s.t;
+        onScores(s.players.map(p => ({ name: p.name, color: p.color, score: p.score })));
+      }
 
       raf = requestAnimationFrame(tick);
     };
     tick();
     return () => cancelAnimationFrame(raf);
-  }, [mode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, myColor, myName]);
 
-  return <canvas ref={canvasRef} width={380} height={200} className="w-full h-full" />;
+  return <canvas ref={canvasRef} width={380} height={230} className="w-full h-full" />;
 }
 
+/* ── Main ─────────────────────────────────────────────────────────────── */
 export default function CosmodinosDemo() {
-  const [screen, setScreen] = useState<Screen>("lobby");
+  const [screen,       setScreen]       = useState<Screen>("lobby");
   const [selectedRoom, setSelectedRoom] = useState(0);
-  const [connecting, setConnecting] = useState(false);
+  const [connecting,   setConnecting]   = useState(false);
+  const [myColorIdx,   setMyColorIdx]   = useState(0);
+  const [myName,       setMyName]       = useState("RaptorX");
+  const [scores,       setScores]       = useState<ScoreEntry[]>(
+    DINO_NAMES.map((name, i) => ({ name, color: DINO_COLORS[i], score: 0 }))
+  );
+
+  const room = ROOMS[selectedRoom];
 
   const join = () => {
+    if (room.players >= room.max) return;
     setConnecting(true);
-    setTimeout(() => { setConnecting(false); setScreen("game"); }, 1200);
+    setTimeout(() => { setConnecting(false); setScreen("game"); }, 1100);
   };
 
+  const sorted = [...scores].sort((a, b) => b.score - a.score);
+
   return (
-    <div className="w-full h-full flex flex-col bg-[#080c14] overflow-hidden font-mono">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-[#0d1320] border-b border-[#1e2d4a] shrink-0">
+    <div className="w-full h-full flex flex-col bg-[#070c16] overflow-hidden font-mono">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-4 py-2 bg-[#0c1422] border-b border-[#1a2840] shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-[#60a5fa] font-bold text-sm tracking-widest">COSMODINOS</span>
-          <span className="text-[#1e3a5f] text-xs">v1.4.2</span>
+          <span className="font-bold text-[12px] tracking-[0.2em]" style={{ color: "#60a5fa" }}>COSMODINOS</span>
+          <span className="text-[9px] text-[#1e3a5f]">v1.4.2</span>
         </div>
-        {screen === "game" && (
-          <button onClick={() => setScreen("lobby")} className="text-[10px] text-white/40 hover:text-white/70 transition-colors">
-            ← Lobby
-          </button>
-        )}
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[10px] text-white/40">20 online</span>
+        <div className="flex items-center gap-3">
+          {screen === "game" && (
+            <button type="button" onClick={() => setScreen("lobby")}
+              className="text-[9px] text-white/35 hover:text-white/60 transition-colors">
+              ← Lobby
+            </button>
+          )}
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[9px] text-white/35">20 online</span>
+          </div>
         </div>
       </div>
 
       <AnimatePresence mode="wait">
-        {screen === "lobby" ? (
-          <motion.div key="lobby" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col flex-1 min-h-0">
+
+        {/* ── LOBBY ── */}
+        {screen === "lobby" && (
+          <motion.div key="lobby" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }} className="flex flex-col flex-1 min-h-0">
+
+            {/* Character selector */}
+            <div className="px-3 pt-2.5 pb-2 border-b border-[#1a2840] shrink-0">
+              <p className="text-[8px] text-white/25 uppercase tracking-widest mb-2">Tu dino</p>
+              <div className="flex items-center gap-2 mb-2">
+                {DINO_COLORS.map((c, i) => (
+                  <button key={c} type="button" onClick={() => setMyColorIdx(i)}
+                    className="transition-all rounded-full"
+                    style={{
+                      width: myColorIdx === i ? "22px" : "16px",
+                      height: myColorIdx === i ? "22px" : "16px",
+                      background: c,
+                      outline: myColorIdx === i ? `2px solid ${c}` : "none",
+                      outlineOffset: "2px",
+                      opacity: myColorIdx === i ? 1 : 0.45,
+                    }} />
+                ))}
+              </div>
+              <input
+                type="text"
+                value={myName}
+                maxLength={10}
+                onChange={e => setMyName(e.target.value)}
+                className="bg-transparent border rounded px-2 py-1 text-[10px] outline-none w-32 transition-colors"
+                style={{
+                  borderColor: `${DINO_COLORS[myColorIdx]}55`,
+                  color: DINO_COLORS[myColorIdx],
+                  caretColor: DINO_COLORS[myColorIdx],
+                }}
+                placeholder="Tu nombre"
+              />
+            </div>
+
             {/* Room list */}
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-              <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Salas disponibles</p>
-              {ROOMS.map((room, i) => (
-                <button
-                  key={room.id}
-                  onClick={() => setSelectedRoom(i)}
-                  className={`text-left p-2.5 rounded-lg border transition-all ${
-                    selectedRoom === i
-                      ? "border-[#60a5fa]/50 bg-[#60a5fa]/10"
-                      : "border-[#1e2d4a] hover:border-[#2a3d5a] bg-[#0d1320]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-white/80">{room.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded ${room.mode === "Gem Smash" ? "bg-yellow-500/20 text-yellow-400" : "bg-purple-500/20 text-purple-400"}`}>
-                        {room.mode}
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5" style={{ scrollbarWidth: "none" }}>
+              <p className="text-[8px] text-white/25 uppercase tracking-widest mb-1">Salas disponibles</p>
+              {ROOMS.map((r, i) => (
+                <button key={r.id} type="button" onClick={() => setSelectedRoom(i)}
+                  className="text-left p-2.5 rounded-lg border transition-all"
+                  style={selectedRoom === i ? {
+                    borderColor: "rgba(96,165,250,0.45)",
+                    background: "rgba(96,165,250,0.08)",
+                  } : {
+                    borderColor: "#1a2840",
+                    background: "#0c1422",
+                  }}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10.5px] text-white/75">{r.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[8px] px-1.5 py-0.5 rounded"
+                        style={r.mode === "Gem Smash"
+                          ? { background: "rgba(251,191,36,0.15)", color: "#fbbf24" }
+                          : { background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                        {r.mode}
                       </span>
-                      <span className={`text-[9px] ${room.ping < 30 ? "text-green-400" : room.ping < 60 ? "text-yellow-400" : "text-red-400"}`}>
-                        {room.ping}ms
+                      <span className="text-[8.5px]"
+                        style={{ color: r.ping < 30 ? "#4ade80" : r.ping < 60 ? "#fbbf24" : "#f87171" }}>
+                        {r.ping}ms
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex items-center gap-2">
                     <div className="flex gap-0.5">
-                      {Array.from({ length: room.max }).map((_, j) => (
-                        <div key={j} className={`w-1.5 h-1.5 rounded-sm ${j < room.players ? "bg-[#60a5fa]" : "bg-[#1e2d4a]"}`} />
+                      {Array.from({ length: Math.min(r.max, 16) }).map((_, j) => (
+                        <div key={j} className="w-1.5 h-1.5 rounded-sm transition-colors"
+                          style={{ background: j < r.players ? "#60a5fa" : "#1a2840" }} />
                       ))}
                     </div>
-                    <span className="text-[9px] text-white/30">{room.players}/{room.max}</span>
+                    <span className="text-[8.5px] text-white/25">{r.players}/{r.max}</span>
+                    {r.players >= r.max && (
+                      <span className="text-[7.5px] text-red-400/70">LLENA</span>
+                    )}
                   </div>
                 </button>
               ))}
             </div>
 
             {/* Join button */}
-            <div className="p-3 border-t border-[#1e2d4a] shrink-0">
-              <button
-                onClick={join}
-                disabled={connecting || ROOMS[selectedRoom].players >= ROOMS[selectedRoom].max}
-                className={`w-full py-2.5 rounded-lg text-sm font-bold tracking-wide transition-all ${
-                  ROOMS[selectedRoom].players >= ROOMS[selectedRoom].max
-                    ? "bg-[#1e2d4a] text-white/20 cursor-not-allowed"
-                    : "bg-[#60a5fa] hover:bg-[#3b82f6] text-[#080c14]"
-                }`}
-              >
-                {connecting ? "Conectando…" : ROOMS[selectedRoom].players >= ROOMS[selectedRoom].max ? "Sala llena" : `Unirse · ${ROOMS[selectedRoom].name}`}
+            <div className="p-3 border-t border-[#1a2840] shrink-0">
+              <button type="button" onClick={join}
+                disabled={connecting || room.players >= room.max}
+                className="w-full py-2.5 rounded-lg text-[11px] font-bold tracking-wide transition-all"
+                style={room.players >= room.max
+                  ? { background: "#1a2840", color: "rgba(255,255,255,0.2)", cursor: "not-allowed" }
+                  : { background: "#60a5fa", color: "#070c16" }}>
+                {connecting ? "Conectando…" : room.players >= room.max ? "Sala llena" : `Unirse · ${room.name}`}
               </button>
             </div>
           </motion.div>
-        ) : (
-          <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col flex-1 min-h-0">
-            {/* Scoreboard strip */}
-            <div className="flex gap-2 px-3 py-1.5 bg-[#0d1320] border-b border-[#1e2d4a] overflow-x-auto shrink-0">
-              {DINO_NAMES.map((name, i) => (
-                <div key={name} className="flex items-center gap-1 shrink-0">
-                  <div className="w-2 h-2 rounded-full" style={{ background: DINO_COLORS[i] }} />
-                  <span className="text-[9px] text-white/50">{name}</span>
-                  <span className="text-[9px] text-white/30">{(i * 30 + 10) % 120}</span>
+        )}
+
+        {/* ── GAME ── */}
+        {screen === "game" && (
+          <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }} className="flex flex-col flex-1 min-h-0">
+
+            {/* Scoreboard */}
+            <div className="flex gap-2 px-3 py-1.5 bg-[#0c1422] border-b border-[#1a2840] overflow-x-auto shrink-0"
+              style={{ scrollbarWidth: "none" }}>
+              {sorted.map((s, rank) => (
+                <div key={s.name} className="flex items-center gap-1 shrink-0">
+                  <span className="text-[7.5px] text-white/20 w-3">{rank + 1}.</span>
+                  <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+                  <span className="text-[8.5px]"
+                    style={{ color: s.name === DINO_NAMES[myColorIdx] ? "#fff" : "rgba(255,255,255,0.45)" }}>
+                    {s.name}
+                  </span>
+                  <span className="text-[8.5px] tabular-nums" style={{ color: s.color }}>{s.score}</span>
                 </div>
               ))}
             </div>
 
-            {/* Game canvas */}
+            {/* Canvas */}
             <div className="flex-1 min-h-0">
-              <GameCanvas mode={ROOMS[selectedRoom].mode} />
+              <GameCanvas
+                mode={room.mode}
+                myColor={DINO_COLORS[myColorIdx]}
+                myName={myName || "Dino"}
+                onScores={setScores}
+              />
             </div>
 
-            <div className="px-4 py-1.5 border-t border-[#1e2d4a] text-center text-[9px] text-white/20 shrink-0">
-              Cosmodinos · Unity / C# · {ROOMS[selectedRoom].players} jugadores · {ROOMS[selectedRoom].mode}
+            {/* Status bar */}
+            <div className="px-4 py-1.5 border-t border-[#1a2840] flex items-center justify-between shrink-0">
+              <span className="text-[8px] text-white/18">Cosmodinos · Unity / C# / Socket.io</span>
+              <div className="flex items-center gap-3 text-[8px] text-white/25">
+                <span>{room.mode}</span>
+                <span>{room.players} jugadores</span>
+                <span style={{ color: room.ping < 30 ? "#4ade80" : "#fbbf24" }}>{room.ping}ms</span>
+              </div>
             </div>
           </motion.div>
         )}
