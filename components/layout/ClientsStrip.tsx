@@ -5,10 +5,13 @@ import { useLang } from "@/context/LanguageContext";
 import { UI } from "@/lib/i18n";
 
 const CLIENTS = [
-  "Creature Co.",
+  "Cosmodinos",
+  "Rhezo",
   "Peer",
   "Infini",
   "WeMoms",
+  "Usual",
+  "Mimir",
 ];
 
 export function ClientsStrip() {

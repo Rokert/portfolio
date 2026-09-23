@@ -12,9 +12,9 @@ const EXPERIENCE = [
     roleEN: "Creative Developer",
     company: "Makata Studio · Remote",
     descES:
-      "Entregué juegos, experiencias web 3D, apps iOS y herramientas de desarrollo para clientes como Creature Co., Peer, Infini y WeMoms. Stack completo: Unity, WebGPU, React Three Fiber, Swift y Node.js.",
+      "Entregué juegos, experiencias web 3D, apps iOS y herramientas de desarrollo para clientes como Cosmodinos, Rhezo, Peer, Infini, WeMoms, Usual y Mimir. Stack completo: Unity, WebGPU, React Three Fiber, Swift y Node.js.",
     descEN:
-      "Shipped games, 3D web experiences, iOS apps and developer tools for clients including Creature Co., Peer, Infini and WeMoms. Full stack: Unity, WebGPU, React Three Fiber, Swift and Node.js.",
+      "Shipped games, 3D web experiences, iOS apps and developer tools for clients including Cosmodinos, Rhezo, Peer, Infini, WeMoms, Usual and Mimir. Full stack: Unity, WebGPU, React Three Fiber, Swift and Node.js.",
     highlights: ["Unity", "WebGPU", "R3F", "Swift", "Next.js"],
   },
   {

@@ -22,9 +22,9 @@ import { useLang } from "@/context/LanguageContext";
 import { UI } from "@/lib/i18n";
 
 const SOCIALS = [
-  { label: "Email",    href: "mailto:rokert34@gmail.com",          Icon: Mail        },
-  { label: "LinkedIn", href: "https://linkedin.com/in/rokert34",   Icon: LinkedInIcon },
-  { label: "GitHub",   href: "https://github.com/Rokert",          Icon: GitHubIcon  },
+  { label: "Email",    href: "mailto:rokert34@gmail.com",                                    Icon: Mail        },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/julian-david-munoz-rodriguez/",   Icon: LinkedInIcon },
+  { label: "GitHub",   href: "https://github.com/Rokert",                                   Icon: GitHubIcon  },
 ];
 
 export function CtaSection() {

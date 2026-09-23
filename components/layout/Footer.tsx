@@ -16,7 +16,15 @@ export function Footer() {
             Email
           </a>
           <a
-            href="https://github.com"
+            href="https://www.linkedin.com/in/julian-david-munoz-rodriguez/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[--foreground] transition-colors"
+          >
+            LinkedIn
+          </a>
+          <a
+            href="https://github.com/Rokert"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-[--foreground] transition-colors"
