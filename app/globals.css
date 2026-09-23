@@ -58,3 +58,8 @@ body {
 .animate-shimmer {
   animation: shimmer 1.8s infinite linear;
 }
+
+@keyframes marqueeLoop {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-25%); }
+}
