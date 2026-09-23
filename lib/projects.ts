@@ -78,7 +78,8 @@ export const projects: Project[] = [
     longDesc:
       "Tienda e-commerce headless con contenido bilingüe (EN/FR) gestionado en Sanity CMS y fallback local si el CMS no responde.",
     tags: ["Shopify", "Remix", "Sanity", "TypeScript", "GraphQL"],
-    demoType: "screenshot",
+    demoType: "interactive",
+    url: "https://infiniwater.com",
     color: "#10b981",
   },
   {
@@ -111,7 +112,8 @@ export const projects: Project[] = [
     longDesc:
       "App iOS con una escena 3D en SceneKit para cada una de las 40 semanas de gestación, con animaciones idle y variantes por etnia.",
     tags: ["Swift", "SwiftUI", "SceneKit"],
-    demoType: "video",
+    demoType: "interactive",
+    url: "https://apps.apple.com/us/app/wemoms-pregnancy-baby-app/id938845147",
     color: "#f43f5e",
   },
   {
