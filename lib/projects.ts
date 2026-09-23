@@ -2,7 +2,8 @@ export type Tag =
   | "Next.js" | "React" | "TypeScript" | "Three.js" | "R3F" | "WebGPU" | "GLSL"
   | "GSAP" | "Framer Motion" | "Supabase" | "WebCodecs" | "Swift" | "SwiftUI"
   | "Unity" | "C#" | "Node.js" | "Shopify" | "Remix" | "Sanity" | "GraphQL"
-  | "Zustand" | "Tailwind" | "Vercel" | "ShaderLab" | "Framer" | "SceneKit";
+  | "Zustand" | "Tailwind" | "Vercel" | "ShaderLab" | "Framer" | "SceneKit"
+  | "VR" | "AR" | "Gamification" | "Flutter" | "PHP";
 
 export type DemoType = "3d" | "video" | "interactive" | "shader" | "screenshot";
 
@@ -173,3 +174,52 @@ export const projects: Project[] = [
 ];
 
 export const featuredProjects = projects.filter((p) => p.featured);
+
+export interface OtherProject {
+  id: string;
+  title: string;
+  year: string;
+  shortDesc: string;
+  shortDescEN: string;
+  tags: Tag[];
+  url?: string;
+}
+
+export const medeaProjects: OtherProject[] = [
+  {
+    id: "medea-vr-mantenimiento",
+    title: "VR Mantenimiento Técnico",
+    year: "2019–2021",
+    shortDesc: "Entrenador en Realidad Virtual para operarios y técnicos de mantenimiento industrial.",
+    shortDescEN: "VR trainer for industrial maintenance technicians and operators.",
+    tags: ["Unity", "C#", "VR"],
+    url: "https://medeainteractiva.com/web/portafolio/entrenador-en-realidad-virtual-para-mantenimiento-tecnico/",
+  },
+  {
+    id: "medea-serious-game-liderazgo",
+    title: "Serious Game Liderazgo",
+    year: "2018–2020",
+    shortDesc: "Videojuego de liderazgo con toma de decisiones y analítica avanzada.",
+    shortDescEN: "Leadership serious game with decision-making scenarios and advanced analytics.",
+    tags: ["Unity", "C#", "Gamification"],
+    url: "https://medeainteractiva.com/web/portafolio/serious-game-de-liderazgo-con-analitica-avanzada/",
+  },
+  {
+    id: "medea-cafet",
+    title: "Cafet",
+    year: "2017–2019",
+    shortDesc: "Videojuego, VR y AR para aprender sobre café y emprendimiento en Colombia.",
+    shortDescEN: "Video game, VR and AR to learn about coffee culture and entrepreneurship in Colombia.",
+    tags: ["Unity", "C#", "VR", "AR", "Gamification"],
+    url: "https://medeainteractiva.com/web/portafolio/cafet-videojuego-vr-y-ar-para-aprender-sobre-cafe-y-emprender/",
+  },
+  {
+    id: "medea-vr-carnes",
+    title: "VR Corte de Carnes",
+    year: "2020–2021",
+    shortDesc: "Experiencia VR para entrenamiento en corte y manejo higiénico de carnes.",
+    shortDescEN: "VR simulation for meat cutting and hygienic handling training.",
+    tags: ["Unity", "C#", "VR"],
+    url: "https://medeainteractiva.com/web/portafolio/capacitacion-para-cortes-y-manejo-de-carnes-con-realidad-virtual/",
+  },
+];

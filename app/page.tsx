@@ -4,6 +4,7 @@ import { ProjectsGrid } from "@/components/layout/ProjectsGrid";
 import { CapabilitiesSection } from "@/components/layout/CapabilitiesSection";
 import { ClientsStrip } from "@/components/layout/ClientsStrip";
 import { ExperienceSection } from "@/components/layout/ExperienceSection";
+import { OtherProjectsSection } from "@/components/layout/OtherProjectsSection";
 import { CtaSection } from "@/components/layout/CtaSection";
 import { Footer } from "@/components/layout/Footer";
 
@@ -13,6 +14,7 @@ export default function Home() {
       <Hero />
       <AboutSection />
       <ProjectsGrid />
+      <OtherProjectsSection />
       <CapabilitiesSection />
       <ClientsStrip />
       <ExperienceSection />

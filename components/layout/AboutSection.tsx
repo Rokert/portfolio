@@ -7,8 +7,8 @@ import { UI } from "@/lib/i18n";
 
 const STATS = [
   { value: 12, suffix: "+", labelES: "años de experiencia",  labelEN: "years of experience" },
-  { value: 10, suffix: "",  labelES: "proyectos entregados", labelEN: "projects shipped"    },
-  { value: 5,  suffix: "",  labelES: "plataformas",          labelEN: "platforms"           },
+  { value: 20, suffix: "+", labelES: "proyectos entregados", labelEN: "projects shipped"    },
+  { value: 8,  suffix: "+", labelES: "plataformas",          labelEN: "platforms"           },
 ];
 
 function CountUp({ value, suffix = "" }: { value: number; suffix?: string }) {
