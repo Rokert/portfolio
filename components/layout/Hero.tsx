@@ -112,17 +112,17 @@ export function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex items-center gap-3 mt-2"
+          className="flex flex-col items-center gap-3 mt-2"
         >
           <a
             href="mailto:rokert34@gmail.com"
-            className="px-5 py-2.5 rounded-full bg-[--accent] text-black font-semibold text-sm hover:bg-[--accent]/90 transition-colors"
+            className="px-6 py-2.5 rounded-full bg-[--accent] text-black font-semibold text-sm hover:bg-[--accent]/90 transition-colors"
           >
             {t.contact}
           </a>
           <a
             href="#proyectos"
-            className="px-5 py-2.5 rounded-full border border-[--border] text-sm hover:border-[--foreground]/30 transition-colors"
+            className="px-6 py-2.5 rounded-full border border-[--border] text-sm hover:border-[--foreground]/30 transition-colors"
           >
             {t.viewProjects}
           </a>
