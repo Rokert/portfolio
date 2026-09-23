@@ -1,88 +1,87 @@
 "use client";
 
-import { useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Environment } from "@react-three/drei";
-import * as THREE from "three";
-
-const CARDS = [
-  { pos: [-1.5, 0.2, -0.5] as [number, number, number], rot: [-0.1, -0.3, 0.08] as [number, number, number], color: "#06b6d4", label: "Cosmic" },
-  { pos: [0, 0, 0] as [number, number, number], rot: [0.05, 0.1, -0.04] as [number, number, number], color: "#a855f7", label: "Storm" },
-  { pos: [1.5, -0.2, -0.3] as [number, number, number], rot: [-0.08, 0.2, 0.06] as [number, number, number], color: "#f97316", label: "Inferno" },
-];
-
-function BattlepassCard({
-  position,
-  rotation,
-  color,
-  index,
-}: {
-  position: [number, number, number];
-  rotation: [number, number, number];
-  color: string;
-  index: number;
-}) {
-  const ref = useRef<THREE.Group>(null);
-
-  useFrame(({ clock, pointer }) => {
-    if (!ref.current) return;
-    const t = clock.getElapsedTime();
-    ref.current.rotation.x = rotation[0] + pointer.y * -0.15 + Math.sin(t * 0.5 + index) * 0.02;
-    ref.current.rotation.y = rotation[1] + pointer.x * 0.25;
-    ref.current.rotation.z = rotation[2];
-    ref.current.position.y = position[1] + Math.sin(t * 0.6 + index * 1.2) * 0.06;
-  });
-
-  return (
-    <group ref={ref} position={position}>
-      {/* Card body */}
-      <mesh>
-        <boxGeometry args={[0.85, 1.2, 0.025]} />
-        <meshStandardMaterial color="#111" roughness={0.2} metalness={0.8} />
-      </mesh>
-      {/* Colored glow face */}
-      <mesh position={[0, 0, 0.013]}>
-        <planeGeometry args={[0.82, 1.17]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={0.4}
-          transparent
-          opacity={0.15}
-        />
-      </mesh>
-      {/* Edge glow */}
-      <lineSegments position={[0, 0, 0.014]}>
-        <edgesGeometry args={[new THREE.BoxGeometry(0.85, 1.2, 0.001)]} />
-        <lineBasicMaterial color={color} transparent opacity={0.6} />
-      </lineSegments>
-    </group>
-  );
-}
+import { useState, useEffect, useRef } from "react";
+import { ExternalLink, RefreshCw } from "lucide-react";
 
 export default function PeerDemo() {
+  const [status, setStatus] = useState<"loading" | "loaded" | "blocked">("loading");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    timeoutRef.current = setTimeout(() => {
+      if (status === "loading") setStatus("blocked");
+    }, 5000);
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
+
+  const handleLoad = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    try {
+      const _ = iframeRef.current?.contentWindow?.location.href;
+      setStatus("loaded");
+    } catch {
+      setStatus("blocked");
+    }
+  };
+
+  const reload = () => {
+    setStatus("loading");
+    if (iframeRef.current) iframeRef.current.src = "https://heypeer.ai";
+    timeoutRef.current = setTimeout(() => setStatus("blocked"), 5000);
+  };
+
   return (
-    <div className="relative w-full h-full min-h-[300px]">
-      <Canvas camera={{ position: [0, 0, 4], fov: 45 }}>
-        <ambientLight intensity={0.2} />
-        <pointLight position={[0, 3, 3]} intensity={1.5} color="#fff" />
-        <pointLight position={[-3, -2, 1]} intensity={0.8} color="#06b6d4" />
-        <pointLight position={[3, -1, 1]} intensity={0.6} color="#a855f7" />
-        <Environment preset="night" />
-        {CARDS.map((card, i) => (
-          <Float key={i} speed={0.8 + i * 0.2} floatIntensity={0.1}>
-            <BattlepassCard
-              position={card.pos}
-              rotation={card.rot}
-              color={card.color}
-              index={i}
-            />
-          </Float>
-        ))}
-      </Canvas>
-      <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] font-mono text-white/20">
-        mueve el cursor · Peer battlepass cards
-      </p>
+    <div className="relative w-full h-full min-h-[300px] bg-black flex flex-col">
+      <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm border border-white/10 rounded-full px-2.5 py-1 text-[10px] font-mono text-white/60 pointer-events-none">
+        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+        heypeer.ai — live
+      </div>
+
+      {status !== "blocked" && (
+        <iframe
+          ref={iframeRef}
+          src="https://heypeer.ai"
+          onLoad={handleLoad}
+          className="w-full h-full border-0 flex-1"
+          sandbox="allow-scripts allow-same-origin allow-forms"
+          title="heypeer.ai"
+          style={{ opacity: status === "loaded" ? 1 : 0, transition: "opacity 0.4s" }}
+        />
+      )}
+
+      {status === "loading" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black">
+          <div className="w-6 h-6 rounded-full border-2 border-cyan-500/40 border-t-cyan-500 animate-spin" />
+          <span className="text-[11px] font-mono text-white/30">Cargando heypeer.ai…</span>
+        </div>
+      )}
+
+      {status === "blocked" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-[#0a0a0a]">
+          <div className="text-center">
+            <p className="text-white/60 text-sm font-medium mb-1">El sitio bloquea iframes</p>
+            <p className="text-white/30 text-xs font-mono">X-Frame-Options: SAMEORIGIN</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={reload}
+              className="flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg border border-white/10 text-white/40 hover:text-white/70 transition-colors"
+            >
+              <RefreshCw size={12} /> Reintentar
+            </button>
+            <a
+              href="https://heypeer.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+            >
+              <ExternalLink size={12} /> Abrir heypeer.ai
+            </a>
+          </div>
+          <p className="text-[10px] font-mono text-white/20">Peer · Next.js / R3F / GSAP / Framer Motion</p>
+        </div>
+      )}
     </div>
   );
 }
