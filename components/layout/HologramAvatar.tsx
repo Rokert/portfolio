@@ -32,7 +32,7 @@ const SHAPE_SCALE = 1.55;
 const PARTICLE_SIZE = 0.004;
 const PARTICLE_COLOR = "#9a9a9a";
 // < 1 backs off from a full edge-to-edge cover fit — 1.0 read as too big.
-const COVER_FIT_FACTOR = 0.68;
+const COVER_FIT_FACTOR = 0.9;
 // Matches HeroFrame's `bottom-8` corner bracket inset, in CSS pixels.
 const FRAME_CORNER_INSET_PX = 32;
 // Fraction of particles that never move for hover OR the click/tap
@@ -343,12 +343,14 @@ function HologramPoints({
   }, [gl, initCompute]);
 
   useFrame((state) => {
-    // Same cover-fit as before (real bounding box vs. the panel's actual
-    // world-space size, so it never drifts out of sync on resize), but
-    // backed off a bit — full cover read as too large/cropped.
+    // "Contain", not "cover": pick whichever dimension is more restrictive
+    // so the whole figure is always fully visible, never cropped on any
+    // side, regardless of how narrow/wide the panel is (real bounding box
+    // vs. the panel's actual world-space size, so it never drifts out of
+    // sync on resize either).
     const coverScale =
       COVER_FIT_FACTOR *
-      Math.max(viewport.width / (2 * boundsHalfWidth), viewport.height / (2 * boundsHalfHeight));
+      Math.min(viewport.width / (2 * boundsHalfWidth), viewport.height / (2 * boundsHalfHeight));
     points.scale.setScalar(coverScale);
 
     // Anchor the figure's bottom AND right edges exactly on the HeroFrame

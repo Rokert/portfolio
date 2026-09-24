@@ -77,7 +77,7 @@ export function Hero() {
         className="absolute inset-0 w-full h-full pointer-events-none"
       />
 
-      <HologramAvatar className="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-[45%] z-[5]" />
+      <HologramAvatar className="absolute inset-y-0 right-0 w-[62%] sm:w-2/3 lg:w-[45%] z-[5]" />
       <HeroFrame />
 
       <div className="relative z-10 max-w-3xl text-center flex flex-col items-center gap-6">
