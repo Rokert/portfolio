@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { useLang } from "@/context/LanguageContext";
 import { UI } from "@/lib/i18n";
+import { HeroFrame } from "./HeroFrame";
 
 const HologramAvatar = dynamic(
   () => import("./HologramAvatar").then((mod) => mod.HologramAvatar),
@@ -77,6 +78,7 @@ export function Hero() {
       />
 
       <HologramAvatar className="absolute inset-y-0 right-0 w-full sm:w-2/3 lg:w-[45%] z-[5]" />
+      <HeroFrame />
 
       <div className="relative z-10 max-w-3xl text-center flex flex-col items-center gap-6">
         <motion.div

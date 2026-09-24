@@ -18,22 +18,36 @@ import {
   vec2,
   vec3,
   float,
+  hash,
+  select,
+  clamp,
 } from "three/tsl";
 
 const AVATAR_SRC = "/avatar.png";
-const MAX_PARTICLES = 16000;
+const MAX_PARTICLES = 21000;
 const ALPHA_THRESHOLD = 40;
 // Uniform scale (never stretch X/Y independently — distorts the figure).
 // Cropping against the panel edges comes from camera zoom/offset instead.
 const SHAPE_SCALE = 1.55;
 const PARTICLE_SIZE = 0.004;
 const PARTICLE_COLOR = "#9a9a9a";
+// < 1 backs off from a full edge-to-edge cover fit — 1.0 read as too big.
+const COVER_FIT_FACTOR = 0.68;
+// Matches HeroFrame's `bottom-8` corner bracket inset, in CSS pixels.
+const FRAME_CORNER_INSET_PX = 32;
+// Fraction of particles that never move for hover OR the click/tap
+// explosion (a stable per-particle coin flip) — keeps both effects from
+// ever clearing out a clean hole. 0.7 = 70% stay put, 30% react.
+const STAYS_PUT_THRESHOLD = 0.7;
 
 interface ParticleData {
   positions: Float32Array;
   /** 0 = deep in the silhouette, 1 = right at the boundary — used to fade/scatter edges. */
   edgeFactors: Float32Array;
   count: number;
+  /** Actual bounding half-extents of `positions`, for a cover-fit scale at render time. */
+  boundsHalfWidth: number;
+  boundsHalfHeight: number;
 }
 
 const EDGE_RADIUS = 3;
@@ -120,7 +134,7 @@ async function buildTargetPositions(): Promise<ParticleData> {
     }
   }
 
-  const CONTRAST = 0.6;
+  const CONTRAST = 0.85;
   const LUMINANCE_FLOOR = 0.08;
   const contrast = (l: number) => Math.min(1, Math.max(0, (l - 0.5) * (1 + CONTRAST) + 0.5));
 
@@ -140,6 +154,8 @@ async function buildTargetPositions(): Promise<ParticleData> {
 
   const positions: number[] = [];
   const edgeFactors: number[] = [];
+  let boundsHalfWidth = 0;
+  let boundsHalfHeight = 0;
   for (const p of valid) {
     if (Math.random() > Math.min(1, p.weight * scale)) continue;
 
@@ -147,31 +163,55 @@ async function buildTargetPositions(): Promise<ParticleData> {
     const ny = -(p.y / height - 0.5) * 2 * SHAPE_SCALE;
     positions.push(nx, ny, (Math.random() - 0.5) * 0.02);
     edgeFactors.push(edgeScoreAt(data, width, height, p.x, p.y));
+    boundsHalfWidth = Math.max(boundsHalfWidth, Math.abs(nx));
+    boundsHalfHeight = Math.max(boundsHalfHeight, Math.abs(ny));
   }
 
   return {
     positions: new Float32Array(positions),
     edgeFactors: new Float32Array(edgeFactors),
     count: positions.length / 3,
+    boundsHalfWidth,
+    boundsHalfHeight,
   };
 }
 
-function HologramPoints({ positions, edgeFactors, count }: ParticleData) {
-  const { gl, viewport } = useThree();
+function HologramPoints({
+  positions,
+  edgeFactors,
+  count,
+  boundsHalfWidth,
+  boundsHalfHeight,
+}: ParticleData) {
+  const { gl, viewport, size } = useThree();
   const initialized = useRef(false);
   const mouseNdc = useRef({ x: 10, y: 10 });
+  const frameSyncCounter = useRef(0);
+  const loggedOnce = useRef(false);
+  const explosionClickNdc = useRef<{ x: number; y: number } | null>(null);
+  const explosionStartMs = useRef<number | null>(null);
 
   // The canvas is pointer-events-none (it sits decoratively behind clickable
   // content), so it never receives its own pointer events — track the
   // cursor globally instead and convert to NDC relative to the canvas rect.
   useEffect(() => {
     const canvasEl = gl.domElement;
-    const setFromEvent = (e: PointerEvent) => {
+    const ndcFromEvent = (e: PointerEvent) => {
       const rect = canvasEl.getBoundingClientRect();
-      mouseNdc.current = {
+      return {
         x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
         y: -(((e.clientY - rect.top) / rect.height) * 2 - 1),
       };
+    };
+    const setFromEvent = (e: PointerEvent) => {
+      mouseNdc.current = ndcFromEvent(e);
+    };
+    // A click/tap fires a one-off "explosion" impulse on top of the regular
+    // hover dissolve, at the exact point touched, decaying over ~1s.
+    const triggerExplosion = (e: PointerEvent) => {
+      setFromEvent(e);
+      explosionClickNdc.current = ndcFromEvent(e);
+      explosionStartMs.current = performance.now();
     };
     const reset = () => {
       mouseNdc.current = { x: 10, y: 10 };
@@ -181,26 +221,28 @@ function HologramPoints({ positions, edgeFactors, count }: ParticleData) {
     // reset it, so lifting the finger lets the shape reform, matching mouse
     // leaving the area on desktop.
     window.addEventListener("pointermove", setFromEvent);
-    window.addEventListener("pointerdown", setFromEvent);
+    window.addEventListener("pointerdown", triggerExplosion);
     window.addEventListener("pointerup", reset);
     window.addEventListener("pointercancel", reset);
     window.addEventListener("pointerleave", reset);
     return () => {
       window.removeEventListener("pointermove", setFromEvent);
-      window.removeEventListener("pointerdown", setFromEvent);
+      window.removeEventListener("pointerdown", triggerExplosion);
       window.removeEventListener("pointerup", reset);
       window.removeEventListener("pointercancel", reset);
       window.removeEventListener("pointerleave", reset);
     };
   }, [gl]);
 
-  const { points, initCompute, updateCompute, mouseUniform } = useMemo(() => {
+  const { points, initCompute, updateCompute, mouseUniform, explosionUniform } = useMemo(() => {
     const targetAttribute = new THREE.StorageInstancedBufferAttribute(positions, 3);
     const targetBuffer = storage(targetAttribute, "vec3", count);
     const edgeAttribute = new THREE.StorageInstancedBufferAttribute(edgeFactors, 1);
     const edgeBuffer = storage(edgeAttribute, "float", count);
     const currentBuffer = instancedArray(count, "vec3");
     const mouse = uniform(new THREE.Vector2(10, 10));
+    // xy = click/tap position (local space), z = seconds since it fired.
+    const explosion = uniform(new THREE.Vector3(10, 10, 999));
 
     const initCompute = Fn(() => {
       const current = currentBuffer.element(instanceIndex);
@@ -225,7 +267,16 @@ function HologramPoints({ positions, edgeFactors, count }: ParticleData) {
       const dist = length(toMouse);
       // Smaller radius + shorter push distance than before, so the cursor
       // leaves a soft dissolve instead of clearing out a hard empty hole.
-      const repulsion = smoothstep(float(0.0), float(0.22), dist).oneMinus();
+      // On top of that, a stable per-particle coin flip (STAYS_PUT_THRESHOLD)
+      // makes most particles ignore the mouse/explosion entirely, so even
+      // right at the touch point most stay put — a partial reveal, never a
+      // clean hole.
+      const staysPut = hash(instanceIndex).greaterThan(float(STAYS_PUT_THRESHOLD));
+      const repulsion = select(
+        staysPut,
+        float(0),
+        smoothstep(float(0.0), float(0.22), dist).oneMinus()
+      );
       const pushDir = normalize(toMouse.add(vec2(0.0001, 0.0001)));
       // A little per-particle noise on the push direction so particles don't
       // scatter in a perfectly clean radial ring — some drift stays behind.
@@ -234,7 +285,25 @@ function HologramPoints({ positions, edgeFactors, count }: ParticleData) {
       const scattered = current.xy.add(pushDirJittered.mul(repulsion).mul(0.28));
 
       const frameTargetXY = mix(idleTarget.xy, scattered, repulsion);
-      const frameTarget = vec3(frameTargetXY.x, frameTargetXY.y, idleTarget.z);
+
+      // One-off "explosion" burst on click/tap: a strong outward kick right
+      // at the touch point that decays over ~1s, layered on top of the
+      // regular hover dissolve — then the usual per-frame ease (below)
+      // brings it back to rest on its own, like it has a little life to it.
+      const toExplosion = current.xy.sub(explosion.xy);
+      const explosionFalloff = smoothstep(float(0.0), float(0.5), length(toExplosion)).oneMinus();
+      const explosionDecay = clamp(float(1.0).sub(explosion.z), float(0.0), float(1.0));
+      const explosionPush = select(
+        staysPut,
+        vec2(0, 0),
+        normalize(toExplosion.add(vec2(0.0001, 0.0001)))
+          .mul(explosionFalloff)
+          .mul(explosionDecay)
+          .mul(0.55)
+      );
+      const burstTargetXY = frameTargetXY.add(explosionPush);
+
+      const frameTarget = vec3(burstTargetXY.x, burstTargetXY.y, idleTarget.z);
 
       current.assign(mix(current, frameTarget, float(0.08)));
     })().compute(count);
@@ -257,7 +326,13 @@ function HologramPoints({ positions, edgeFactors, count }: ParticleData) {
     material.depthWrite = false;
 
     const pointsObject = new THREE.InstancedMesh(geometry, material, count);
-    return { points: pointsObject, initCompute, updateCompute: update, mouseUniform: mouse };
+    return {
+      points: pointsObject,
+      initCompute,
+      updateCompute: update,
+      mouseUniform: mouse,
+      explosionUniform: explosion,
+    };
   }, [positions, edgeFactors, count]);
 
   useEffect(() => {
@@ -268,12 +343,101 @@ function HologramPoints({ positions, edgeFactors, count }: ParticleData) {
   }, [gl, initCompute]);
 
   useFrame((state) => {
+    // Same cover-fit as before (real bounding box vs. the panel's actual
+    // world-space size, so it never drifts out of sync on resize), but
+    // backed off a bit — full cover read as too large/cropped.
+    const coverScale =
+      COVER_FIT_FACTOR *
+      Math.max(viewport.width / (2 * boundsHalfWidth), viewport.height / (2 * boundsHalfHeight));
+    points.scale.setScalar(coverScale);
+
+    // Anchor the figure's bottom AND right edges exactly on the HeroFrame
+    // corner brackets (bottom-8/right-8 → 32px insets), converting that CSS
+    // pixel inset to world units via the actual px-per-world-unit ratio, so
+    // it lines up at any viewport size — consistent on both edges instead
+    // of the right edge landing wherever cover-fit's math happens to put it.
+    const worldPerPixel = viewport.height / size.height;
+    const insetWorld = FRAME_CORNER_INSET_PX * worldPerPixel;
+    const desiredBottomWorld = -viewport.height / 2 + insetWorld;
+    const figureBottomLocal = -boundsHalfHeight * coverScale;
+    points.position.setY(desiredBottomWorld - figureBottomLocal);
+    const desiredRightWorld = viewport.width / 2 - insetWorld;
+    const figureRightLocal = boundsHalfWidth * coverScale;
+    points.position.setX(desiredRightWorld - figureRightLocal);
+
+    // Mouse position needs to be in the same pre-scale, pre-offset local
+    // space that `current.xy` lives in inside the compute shader.
     mouseUniform.value.set(
-      (mouseNdc.current.x * viewport.width) / 2,
-      (mouseNdc.current.y * viewport.height) / 2
+      ((mouseNdc.current.x * viewport.width) / 2 - points.position.x) / coverScale,
+      ((mouseNdc.current.y * viewport.height) / 2 - points.position.y) / coverScale
     );
+
+    // Explosion burst: same NDC→local conversion, plus how many seconds
+    // have elapsed since the click/tap that triggered it (the shader decays
+    // it to nothing past ~1s; once it's fully decayed we stop updating it).
+    if (explosionStartMs.current !== null && explosionClickNdc.current) {
+      const ageSec = (performance.now() - explosionStartMs.current) / 1000;
+      if (ageSec > 1.2) {
+        explosionStartMs.current = null;
+      } else {
+        explosionUniform.value.set(
+          ((explosionClickNdc.current.x * viewport.width) / 2 - points.position.x) / coverScale,
+          ((explosionClickNdc.current.y * viewport.height) / 2 - points.position.y) / coverScale,
+          ageSec
+        );
+      }
+    }
+
     const renderer = state.gl as unknown as InstanceType<typeof THREE.WebGPURenderer>;
     renderer.computeAsync(updateCompute);
+
+    // Publish the figure's real on-screen edges as CSS vars on the <section>
+    // so HeroFrame's lines can be positioned exactly on them instead of
+    // guessed percentages. getBoundingClientRect forces layout, so this is
+    // throttled — the panel only actually moves on resize.
+    frameSyncCounter.current += 1;
+    if (frameSyncCounter.current % 20 === 0) {
+      const halfW = boundsHalfWidth * coverScale;
+      const halfH = boundsHalfHeight * coverScale;
+      // 0..1 fraction of the canvas's own box (0 = left/bottom, 1 = right/top)
+      const leftFrac = 0.5 + (points.position.x - halfW) / viewport.width;
+      const rightFrac = 0.5 + (points.position.x + halfW) / viewport.width;
+      const topFrac = 0.5 - (points.position.y + halfH) / viewport.height;
+      const bottomFrac = 0.5 - (points.position.y - halfH) / viewport.height;
+
+      const canvasEl = state.gl.domElement;
+      const sectionEl = canvasEl.closest("section");
+      if (sectionEl instanceof HTMLElement) {
+        const canvasRect = canvasEl.getBoundingClientRect();
+        const sectionRect = sectionEl.getBoundingClientRect();
+        const toSectionPctX = (frac: number) =>
+          (((canvasRect.left - sectionRect.left) + frac * canvasRect.width) / sectionRect.width) *
+          100;
+        const toSectionPctY = (frac: number) =>
+          (((canvasRect.top - sectionRect.top) + frac * canvasRect.height) / sectionRect.height) *
+          100;
+        const leftPct = toSectionPctX(leftFrac);
+        const rightPct = toSectionPctX(rightFrac);
+        const topPct = toSectionPctY(topFrac);
+        const bottomPct = toSectionPctY(bottomFrac);
+        sectionEl.style.setProperty("--figure-left", `${leftPct.toFixed(2)}%`);
+        sectionEl.style.setProperty("--figure-right", `${rightPct.toFixed(2)}%`);
+        sectionEl.style.setProperty("--figure-top", `${topPct.toFixed(2)}%`);
+        sectionEl.style.setProperty("--figure-bottom", `${bottomPct.toFixed(2)}%`);
+        if (!loggedOnce.current) {
+          loggedOnce.current = true;
+          console.info("[HologramAvatar] figure bounds synced to <section>:", {
+            leftPct,
+            rightPct,
+            topPct,
+            bottomPct,
+          });
+        }
+      } else if (!loggedOnce.current) {
+        loggedOnce.current = true;
+        console.warn("[HologramAvatar] no ancestor <section> found — frame lines won't sync");
+      }
+    }
   });
 
   return <primitive object={points} />;
@@ -319,7 +483,7 @@ export function HologramAvatar({ className }: { className?: string }) {
     <div className={`${className ?? ""} pointer-events-none`}>
       <Canvas
         dpr={[1, 1.5]}
-        camera={{ position: [-0.55, 0.85, 2.75], fov: 45 }}
+        camera={{ position: [0, 0, 3], fov: 45 }}
         gl={async (props) => {
           try {
             const renderer = new THREE.WebGPURenderer({
@@ -344,6 +508,8 @@ export function HologramAvatar({ className }: { className?: string }) {
           positions={data.positions}
           edgeFactors={data.edgeFactors}
           count={data.count}
+          boundsHalfWidth={data.boundsHalfWidth}
+          boundsHalfHeight={data.boundsHalfHeight}
         />
       </Canvas>
     </div>
