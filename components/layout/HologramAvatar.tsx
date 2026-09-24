@@ -23,7 +23,9 @@ import {
 const AVATAR_SRC = "/avatar.png";
 const MAX_PARTICLES = 16000;
 const ALPHA_THRESHOLD = 40;
-const SHAPE_SCALE = 1.2;
+// Uniform scale (never stretch X/Y independently — distorts the figure).
+// Cropping against the panel edges comes from camera zoom/offset instead.
+const SHAPE_SCALE = 1.55;
 const PARTICLE_SIZE = 0.004;
 const PARTICLE_COLOR = "#9a9a9a";
 
@@ -164,21 +166,31 @@ function HologramPoints({ positions, edgeFactors, count }: ParticleData) {
   // cursor globally instead and convert to NDC relative to the canvas rect.
   useEffect(() => {
     const canvasEl = gl.domElement;
-    const handleMove = (e: PointerEvent) => {
+    const setFromEvent = (e: PointerEvent) => {
       const rect = canvasEl.getBoundingClientRect();
       mouseNdc.current = {
         x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
         y: -(((e.clientY - rect.top) / rect.height) * 2 - 1),
       };
     };
-    const handleLeave = () => {
+    const reset = () => {
       mouseNdc.current = { x: 10, y: 10 };
     };
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerleave", handleLeave);
+    // pointermove/pointerdown cover both mouse hover and a mobile tap (a tap
+    // fires pointerdown immediately, before any move); pointerup/pointercancel
+    // reset it, so lifting the finger lets the shape reform, matching mouse
+    // leaving the area on desktop.
+    window.addEventListener("pointermove", setFromEvent);
+    window.addEventListener("pointerdown", setFromEvent);
+    window.addEventListener("pointerup", reset);
+    window.addEventListener("pointercancel", reset);
+    window.addEventListener("pointerleave", reset);
     return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerleave", handleLeave);
+      window.removeEventListener("pointermove", setFromEvent);
+      window.removeEventListener("pointerdown", setFromEvent);
+      window.removeEventListener("pointerup", reset);
+      window.removeEventListener("pointercancel", reset);
+      window.removeEventListener("pointerleave", reset);
     };
   }, [gl]);
 
@@ -211,9 +223,15 @@ function HologramPoints({ positions, edgeFactors, count }: ParticleData) {
 
       const toMouse = current.xy.sub(mouse);
       const dist = length(toMouse);
-      const repulsion = smoothstep(float(0.0), float(0.35), dist).oneMinus();
+      // Smaller radius + shorter push distance than before, so the cursor
+      // leaves a soft dissolve instead of clearing out a hard empty hole.
+      const repulsion = smoothstep(float(0.0), float(0.22), dist).oneMinus();
       const pushDir = normalize(toMouse.add(vec2(0.0001, 0.0001)));
-      const scattered = current.xy.add(pushDir.mul(repulsion).mul(0.6));
+      // A little per-particle noise on the push direction so particles don't
+      // scatter in a perfectly clean radial ring — some drift stays behind.
+      const jitter = mx_noise_vec3(target.mul(4.0).add(time.mul(0.3))).xy.mul(0.7);
+      const pushDirJittered = normalize(pushDir.add(jitter));
+      const scattered = current.xy.add(pushDirJittered.mul(repulsion).mul(0.28));
 
       const frameTargetXY = mix(idleTarget.xy, scattered, repulsion);
       const frameTarget = vec3(frameTargetXY.x, frameTargetXY.y, idleTarget.z);
@@ -301,7 +319,7 @@ export function HologramAvatar({ className }: { className?: string }) {
     <div className={`${className ?? ""} pointer-events-none`}>
       <Canvas
         dpr={[1, 1.5]}
-        camera={{ position: [0, 0, 3], fov: 45 }}
+        camera={{ position: [-0.55, 0.85, 2.75], fov: 45 }}
         gl={async (props) => {
           try {
             const renderer = new THREE.WebGPURenderer({
