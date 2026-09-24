@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { useLang } from "@/context/LanguageContext";
 import { UI } from "@/lib/i18n";
+
+const HologramAvatar = dynamic(
+  () => import("./HologramAvatar").then((mod) => mod.HologramAvatar),
+  { ssr: false }
+);
 
 export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -70,6 +76,8 @@ export function Hero() {
         className="absolute inset-0 w-full h-full pointer-events-none"
       />
 
+      <HologramAvatar className="absolute inset-0 z-[5]" />
+
       <div className="relative z-10 max-w-3xl text-center flex flex-col items-center gap-6">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -114,12 +122,6 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col items-center gap-3 mt-2"
         >
-          <a
-            href="mailto:rokert34@gmail.com"
-            className="px-6 py-2.5 rounded-full bg-[--accent] text-black font-semibold text-sm hover:bg-[--accent]/90 transition-colors"
-          >
-            {t.contact}
-          </a>
           <a
             href="#proyectos"
             className="px-6 py-2.5 rounded-full border border-[--border] text-sm hover:border-[--foreground]/30 transition-colors"
