@@ -85,14 +85,14 @@ export function Hero() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-          className="flex items-center gap-2 text-xs font-mono text-[--foreground]/40 border border-[--border] rounded-full px-4 py-1.5"
+          className="flex items-center gap-2 text-xs font-mono text-(--foreground)/40 border border-(--border) rounded-full px-4 py-1.5"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[--accent] animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-(--accent) animate-pulse" />
           {t.badge}
-          <span className="mx-1 text-[--foreground]/20">·</span>
+          <span className="mx-1 text-(--foreground)/20">·</span>
           <button
             onClick={() => setLang(lang === "ES" ? "EN" : "ES")}
-            className="font-mono text-[10px] px-2 py-0.5 rounded-full border border-[--border] hover:border-[--accent]/50 hover:text-[--accent] transition-colors"
+            className="font-mono text-[10px] px-2 py-0.5 rounded-full border border-(--border) hover:border-(--accent)/50 hover:text-(--accent) transition-colors"
           >
             {lang === "ES" ? "EN" : "ES"}
           </button>
@@ -102,18 +102,18 @@ export function Hero() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
-          className="text-5xl md:text-7xl font-bold leading-[1.05] tracking-tight"
+          className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight"
         >
           Game Dev &amp;
           <br />
-          <span className="text-[--accent]">Creative</span> Dev
+          <span className="text-(--accent)">Creative</span> Dev
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-          className="text-base md:text-lg text-[--foreground]/50 max-w-xl leading-relaxed"
+          className="text-base md:text-lg text-(--foreground)/50 max-w-xl leading-relaxed"
         >
           {t.tagline}
         </motion.p>
@@ -126,7 +126,7 @@ export function Hero() {
         >
           <a
             href="#proyectos"
-            className="px-6 py-2.5 rounded-full border border-[--border] text-sm hover:border-[--foreground]/30 transition-colors"
+            className="px-6 py-2.5 rounded-full border border-(--border) text-sm hover:border-(--foreground)/30 transition-colors"
           >
             {t.viewProjects}
           </a>

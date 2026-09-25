@@ -25,9 +25,9 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: index * 0.07, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
-          "group relative flex flex-col gap-4 rounded-2xl border border-[--border]",
-          "bg-[--card-bg] p-6 cursor-pointer overflow-hidden",
-          "hover:border-[--accent]/40 transition-colors duration-300"
+          "group relative flex flex-col gap-4 rounded-2xl border border-(--border)",
+          "bg-(--card-bg) p-6 cursor-pointer overflow-hidden",
+          "hover:border-(--accent)/40 transition-colors duration-300"
         )}
         onClick={() => setOpen(true)}
       >
@@ -40,8 +40,8 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-[--foreground]/40 font-mono">{project.year}</span>
-            <h2 className="text-lg font-semibold leading-tight group-hover:text-[--accent] transition-colors">
+            <span className="text-xs text-(--foreground)/40 font-mono">{project.year}</span>
+            <h2 className="text-lg font-semibold leading-tight group-hover:text-(--accent) transition-colors">
               {project.title}
             </h2>
           </div>
@@ -52,13 +52,13 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="text-[--foreground]/30 hover:text-[--foreground] transition-colors"
+                className="text-(--foreground)/30 hover:text-(--foreground) transition-colors"
               >
                 <ExternalLink size={14} />
               </a>
             )}
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center border border-[--border] group-hover:border-[--accent]/40 transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center border border-(--border) group-hover:border-(--accent)/40 transition-colors"
               style={{ background: `${project.color}18` }}
             >
               <Play size={12} style={{ color: project.color }} />
@@ -67,7 +67,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
         </div>
 
         {/* Description */}
-        <p className="text-sm text-[--foreground]/60 leading-relaxed line-clamp-2">
+        <p className="text-sm text-(--foreground)/60 leading-relaxed line-clamp-2">
           {shortDesc}
         </p>
 
@@ -76,13 +76,13 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
           {project.tags.slice(0, 5).map((tag) => (
             <span
               key={tag}
-              className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-[--border] text-[--foreground]/40"
+              className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-(--border) text-(--foreground)/40"
             >
               {tag}
             </span>
           ))}
           {project.tags.length > 5 && (
-            <span className="text-[10px] font-mono px-2 py-0.5 text-[--foreground]/30">
+            <span className="text-[10px] font-mono px-2 py-0.5 text-(--foreground)/30">
               +{project.tags.length - 5}
             </span>
           )}

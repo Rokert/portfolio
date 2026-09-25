@@ -13,10 +13,12 @@ export function ProjectsGrid() {
     <section id="proyectos" className="px-6 md:px-12 lg:px-20 py-20 max-w-7xl mx-auto w-full">
       <div className="flex items-end justify-between mb-10">
         <div>
-          <p className="text-xs font-mono text-[--foreground]/30 mb-2">{t.projectsRange}</p>
-          <h2 className="text-3xl font-bold">{t.projectsTitle}</h2>
+          <p className="text-[10px] font-mono text-(--accent) uppercase tracking-[0.2em] mb-2">
+            {t.projectsRange}
+          </p>
+          <h2 className="text-3xl md:text-4xl font-bold">{t.projectsTitle}</h2>
         </div>
-        <p className="text-sm text-[--foreground]/40 hidden md:block">
+        <p className="text-sm text-(--foreground)/40 hidden md:block">
           {t.projectsCount(projects.length)}
         </p>
       </div>

@@ -61,12 +61,12 @@ export function ExperienceSection() {
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
-        className="text-[10px] font-mono text-[--accent] uppercase tracking-[0.2em] mb-3"
+        className="text-[10px] font-mono text-(--accent) uppercase tracking-[0.2em] mb-3"
       >
         {t.expLabel}
       </motion.p>
 
-      <h2 className="text-3xl font-bold mb-12">
+      <h2 className="text-3xl md:text-4xl font-bold mb-12">
         <WordReveal text={t.expTitle} delay={0.05} />
       </h2>
 
@@ -78,17 +78,17 @@ export function ExperienceSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.55, delay: i * 0.15, ease: [0.25, 0.1, 0.25, 1] }}
-            className="grid md:grid-cols-[180px_1fr] gap-4 md:gap-16 py-8 border-t border-[--border] last:border-b"
+            className="grid md:grid-cols-[180px_1fr] gap-4 md:gap-16 py-8 border-t border-(--border) last:border-b"
           >
             <div className="pt-0.5">
-              <p className="text-sm font-mono text-[--accent]">{exp.years}</p>
+              <p className="text-sm font-mono text-(--accent)">{exp.years}</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <p className="font-bold text-xl leading-tight">
                 {lang === "EN" ? exp.roleEN : exp.roleES}
               </p>
-              <p className="text-sm text-[--foreground]/35 font-mono">{exp.company}</p>
-              <p className="text-sm text-[--foreground]/55 leading-relaxed mt-2">
+              <p className="text-sm text-(--foreground)/35 font-mono">{exp.company}</p>
+              <p className="text-sm text-(--foreground)/55 leading-relaxed mt-2">
                 {lang === "EN" ? exp.descEN : exp.descES}
               </p>
               {exp.highlights.length > 0 && (
@@ -96,7 +96,7 @@ export function ExperienceSection() {
                   {exp.highlights.map((h) => (
                     <span
                       key={h}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-[--border] text-[--foreground]/35"
+                      className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-(--border) text-(--foreground)/35"
                     >
                       {h}
                     </span>

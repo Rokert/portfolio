@@ -21,9 +21,9 @@ export function ClientsStrip() {
   const items = [...CLIENTS, ...CLIENTS, ...CLIENTS];
 
   return (
-    <div className="border-t border-b border-[--border] py-4 overflow-hidden">
+    <div className="border-t border-b border-(--border) py-4 overflow-hidden">
       {/* Label row */}
-      <p className="text-[9px] font-mono text-[--foreground]/25 uppercase tracking-[0.25em] text-center mb-3">
+      <p className="text-[9px] font-mono text-(--foreground)/25 uppercase tracking-[0.25em] text-center mb-3">
         {t.clientsLabel}
       </p>
 
@@ -37,10 +37,10 @@ export function ClientsStrip() {
           {items.map((c, i) => (
             <span
               key={i}
-              className="text-sm font-mono text-[--foreground]/30 hover:text-[--foreground]/55 transition-colors whitespace-nowrap select-none px-8"
+              className="text-sm font-mono text-(--foreground)/30 hover:text-(--foreground)/55 transition-colors whitespace-nowrap select-none px-8"
             >
               {c}
-              <span className="ml-8 text-[--foreground]/12">·</span>
+              <span className="ml-8 text-(--foreground)/12">·</span>
             </span>
           ))}
         </motion.div>

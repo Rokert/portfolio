@@ -68,7 +68,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
             transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
             className={cn(
               "fixed inset-4 md:inset-8 lg:inset-12 z-50",
-              "rounded-2xl border border-[--border] bg-[--card-bg]",
+              "rounded-2xl border border-(--border) bg-(--card-bg)",
               "flex flex-col overflow-hidden"
             )}
           >
@@ -79,7 +79,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
             />
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[--border] shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-(--border) shrink-0">
               <div className="flex items-center gap-3">
                 <div
                   className="w-3 h-3 rounded-full"
@@ -87,7 +87,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
                 />
                 <div>
                   <h2 className="font-semibold text-lg leading-none">{project.title}</h2>
-                  <span className="text-xs text-[--foreground]/40 font-mono">{project.year}</span>
+                  <span className="text-xs text-(--foreground)/40 font-mono">{project.year}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
                     href={project.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-[--foreground]/50 hover:text-[--foreground] transition-colors px-3 py-1.5 rounded-lg border border-[--border] hover:border-[--foreground]/20"
+                    className="flex items-center gap-1.5 text-xs text-(--foreground)/50 hover:text-(--foreground) transition-colors px-3 py-1.5 rounded-lg border border-(--border) hover:border-(--foreground)/20"
                   >
                     <ExternalLink size={12} />
                     {t.visitSite}
@@ -104,7 +104,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
                 )}
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-lg border border-[--border] text-[--foreground]/50 hover:text-[--foreground] hover:border-[--foreground]/20 transition-colors"
+                  className="p-2 rounded-lg border border-(--border) text-(--foreground)/50 hover:text-(--foreground) hover:border-(--foreground)/20 transition-colors"
                 >
                   <X size={16} />
                 </button>
@@ -118,7 +118,7 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
                 {DemoComponent ? (
                   <Suspense
                     fallback={
-                      <div className="flex flex-col items-center gap-3 text-[--foreground]/30">
+                      <div className="flex flex-col items-center gap-3 text-(--foreground)/30">
                         <div
                           className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
                           style={{ borderColor: `${project.color} transparent transparent transparent` }}
@@ -135,25 +135,25 @@ export function DemoModal({ project, open, onClose }: DemoModalProps) {
               </div>
 
               {/* Info sidebar */}
-              <div className="w-full lg:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-[--border] p-6 overflow-y-auto flex flex-col gap-5">
+              <div className="w-full lg:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-(--border) p-6 overflow-y-auto flex flex-col gap-5">
                 <div>
-                  <h3 className="text-xs font-mono text-[--foreground]/40 uppercase tracking-widest mb-2">
+                  <h3 className="text-xs font-mono text-(--foreground)/40 uppercase tracking-widest mb-2">
                     {t.description}
                   </h3>
-                  <p className="text-sm text-[--foreground]/70 leading-relaxed">
+                  <p className="text-sm text-(--foreground)/70 leading-relaxed">
                     {description}
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-mono text-[--foreground]/40 uppercase tracking-widest mb-3">
+                  <h3 className="text-xs font-mono text-(--foreground)/40 uppercase tracking-widest mb-3">
                     {t.stack}
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
                     {project.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="text-[10px] font-mono px-2.5 py-1 rounded-full border border-[--border] text-[--foreground]/50"
+                        className="text-[10px] font-mono px-2.5 py-1 rounded-full border border-(--border) text-(--foreground)/50"
                       >
                         {tag}
                       </span>
@@ -179,8 +179,8 @@ function PlaceholderDemo({ project, label }: { project: Project; label: string }
         {project.demoType === "video" ? "▶" : project.demoType === "3d" ? "◈" : "⬡"}
       </div>
       <div>
-        <p className="text-sm text-[--foreground]/50">{label}</p>
-        <p className="text-xs text-[--foreground]/30 mt-1 font-mono">{project.title}</p>
+        <p className="text-sm text-(--foreground)/50">{label}</p>
+        <p className="text-xs text-(--foreground)/30 mt-1 font-mono">{project.title}</p>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mail } from "lucide-react";
 
 function LinkedInIcon() {
   return (
@@ -22,9 +21,8 @@ import { useLang } from "@/context/LanguageContext";
 import { UI } from "@/lib/i18n";
 
 const SOCIALS = [
-  { label: "Email",    href: "mailto:rokert34@gmail.com",                                    Icon: Mail        },
-  { label: "LinkedIn", href: "https://www.linkedin.com/in/julian-david-munoz-rodriguez/",   Icon: LinkedInIcon },
-  { label: "GitHub",   href: "https://github.com/Rokert",                                   Icon: GitHubIcon  },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/julian-david-munoz-rodriguez/", Icon: LinkedInIcon },
+  { label: "GitHub",   href: "https://github.com/Rokert",                                 Icon: GitHubIcon  },
 ];
 
 export function CtaSection() {
@@ -32,7 +30,7 @@ export function CtaSection() {
   const t = UI[lang];
 
   return (
-    <section className="relative border-t border-[--border] overflow-hidden">
+    <section className="relative border-t border-(--border) overflow-hidden">
       <div
         className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] opacity-[0.07] blur-3xl rounded-full pointer-events-none"
         style={{ background: "var(--accent)" }}
@@ -44,7 +42,7 @@ export function CtaSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.65 }}
-          className="text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.02] tracking-tight mb-6 max-w-2xl"
+          className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-6 max-w-2xl"
         >
           {t.ctaTitle}
         </motion.h2>
@@ -54,17 +52,31 @@ export function CtaSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.12 }}
-          className="text-base text-[--foreground]/45 mb-10 max-w-md"
+          className="text-base text-(--foreground)/45 mb-10 max-w-md"
         >
           {t.ctaSub}
         </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.17 }}
+        >
+          <a
+            href="mailto:rokert34@gmail.com"
+            className="inline-block px-6 py-2.5 rounded-full bg-(--accent) text-black font-semibold text-sm hover:bg-(--accent)/90 transition-colors"
+          >
+            {t.contact}
+          </a>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.22 }}
-          className="flex items-center gap-3"
+          className="flex items-center gap-3 mt-6"
         >
           {SOCIALS.map(({ label, href, Icon }) => (
             <a
@@ -73,9 +85,9 @@ export function CtaSection() {
               target={href.startsWith("mailto") ? undefined : "_blank"}
               rel="noopener noreferrer"
               aria-label={label}
-              className="w-12 h-12 rounded-full border border-[--border] flex items-center justify-center text-[--foreground]/50 hover:text-[--foreground] hover:border-[--foreground]/30 transition-colors"
+              className="w-12 h-12 rounded-full border border-(--border) flex items-center justify-center text-(--foreground)/50 hover:text-(--foreground) hover:border-(--foreground)/30 transition-colors"
             >
-              <Icon size={18} />
+              <Icon />
             </a>
           ))}
         </motion.div>

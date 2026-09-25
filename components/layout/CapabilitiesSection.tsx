@@ -67,7 +67,7 @@ export function CapabilitiesSection() {
   const t = UI[lang];
 
   return (
-    <section className="border-t border-[--border] bg-[--card-bg]">
+    <section className="border-t border-(--border) bg-(--card-bg)">
       <div className="px-6 md:px-12 lg:px-20 py-24 max-w-7xl mx-auto w-full">
         <div className="mb-12">
           <motion.p
@@ -75,11 +75,11 @@ export function CapabilitiesSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4 }}
-            className="text-[10px] font-mono text-[--accent] uppercase tracking-[0.2em] mb-3"
+            className="text-[10px] font-mono text-(--accent) uppercase tracking-[0.2em] mb-3"
           >
             {t.capLabel}
           </motion.p>
-          <h2 className="text-3xl font-bold">
+          <h2 className="text-3xl md:text-4xl font-bold">
             <WordReveal text={t.capTitle} delay={0.05} />
           </h2>
         </div>
@@ -92,7 +92,7 @@ export function CapabilitiesSection() {
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.55, delay: i * 0.13, ease: [0.25, 0.1, 0.25, 1] }}
-              className="relative flex flex-col gap-5 rounded-2xl border border-[--border] p-6 hover:border-[--foreground]/15 transition-colors duration-300"
+              className="relative flex flex-col gap-5 rounded-2xl border border-(--border) p-6 hover:border-(--foreground)/15 transition-colors duration-300"
               style={{
                 background: `linear-gradient(135deg, ${cap.color}08 0%, transparent 55%)`,
               }}
@@ -110,15 +110,15 @@ export function CapabilitiesSection() {
                 {lang === "EN" ? cap.titleEN : cap.titleES}
               </h3>
 
-              <p className="text-sm text-[--foreground]/50 leading-relaxed flex-1">
+              <p className="text-sm text-(--foreground)/50 leading-relaxed flex-1">
                 {lang === "EN" ? cap.descEN : cap.descES}
               </p>
 
-              <div className="flex flex-wrap gap-1.5 pt-4 border-t border-[--border]">
+              <div className="flex flex-wrap gap-1.5 pt-4 border-t border-(--border)">
                 {cap.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-[--border] text-[--foreground]/35"
+                    className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-(--border) text-(--foreground)/35"
                   >
                     {tag}
                   </span>

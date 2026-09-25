@@ -61,13 +61,13 @@ export function AboutSection() {
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
-        className="text-[10px] font-mono text-[--accent] uppercase tracking-[0.2em] mb-8"
+        className="text-[10px] font-mono text-(--accent) uppercase tracking-[0.2em] mb-8"
       >
         {t.aboutLabel}
       </motion.p>
 
       <div className="grid lg:grid-cols-2 gap-12 lg:gap-24">
-        <h2 className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold leading-[1.15] tracking-tight">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-[1.15] tracking-tight">
           <WordReveal text={t.aboutStatement} delay={0.05} />
         </h2>
 
@@ -77,12 +77,12 @@ export function AboutSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-base text-[--foreground]/55 leading-relaxed"
+            className="text-base text-(--foreground)/55 leading-relaxed"
           >
             {t.aboutBio}
           </motion.p>
 
-          <div className="grid grid-cols-3 gap-4 sm:gap-6 pt-6 border-t border-[--border]">
+          <div className="grid grid-cols-3 gap-4 sm:gap-6 pt-6 border-t border-(--border)">
             {STATS.map((s, i) => (
               <motion.div
                 key={i}
@@ -91,10 +91,10 @@ export function AboutSection() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: 0.1 + i * 0.1 }}
               >
-                <p className="text-3xl sm:text-4xl font-bold text-[--accent] tracking-tight tabular-nums">
+                <p className="text-3xl sm:text-4xl font-bold text-(--accent) tracking-tight tabular-nums">
                   <CountUp value={s.value} suffix={s.suffix} />
                 </p>
-                <p className="text-[11px] text-[--foreground]/35 mt-1.5 font-mono leading-snug">
+                <p className="text-[11px] text-(--foreground)/35 mt-1.5 font-mono leading-snug">
                   {lang === "EN" ? s.labelEN : s.labelES}
                 </p>
               </motion.div>

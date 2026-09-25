@@ -17,15 +17,15 @@ export function OtherProjectsSection() {
         transition={{ duration: 0.5 }}
         className="flex items-baseline gap-4 mb-6"
       >
-        <p className="text-[10px] font-mono text-[--foreground]/30 uppercase tracking-[0.2em]">
+        <p className="text-[10px] font-mono text-(--accent) uppercase tracking-[0.2em]">
           {lang === "EN" ? "Other projects" : "Otros proyectos"}
         </p>
-        <p className="text-[10px] font-mono text-[--foreground]/20">
+        <p className="text-[10px] font-mono text-(--foreground)/20">
           Medea Interactiva · 2014–2022
         </p>
       </motion.div>
 
-      <div className="border-t border-[--border]">
+      <div className="border-t border-(--border)">
         {medeaProjects.map((project, i) => (
           <motion.div
             key={project.id}
@@ -33,19 +33,19 @@ export function OtherProjectsSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: i * 0.08 }}
-            className="group grid grid-cols-[80px_1fr_auto] md:grid-cols-[100px_1fr_200px_auto] items-center gap-4 md:gap-8 py-4 border-b border-[--border] hover:bg-[--foreground]/[0.02] transition-colors px-2 -mx-2 rounded-lg"
+            className="group grid grid-cols-[80px_1fr_auto] md:grid-cols-[100px_1fr_200px_auto] items-center gap-4 md:gap-8 py-4 border-b border-(--border) hover:bg-(--foreground)/[0.02] transition-colors px-2 -mx-2 rounded-lg"
           >
             {/* Year */}
-            <span className="text-xs font-mono text-[--accent] shrink-0">
+            <span className="text-xs font-mono text-(--accent) shrink-0">
               {project.year}
             </span>
 
             {/* Title + desc */}
             <div className="min-w-0">
-              <p className="text-sm font-semibold group-hover:text-[--accent] transition-colors leading-snug">
+              <p className="text-sm font-semibold group-hover:text-(--accent) transition-colors leading-snug">
                 {project.title}
               </p>
-              <p className="text-xs text-[--foreground]/40 leading-snug mt-0.5 line-clamp-1">
+              <p className="text-xs text-(--foreground)/40 leading-snug mt-0.5 line-clamp-1">
                 {lang === "EN" ? project.shortDescEN : project.shortDesc}
               </p>
             </div>
@@ -55,7 +55,7 @@ export function OtherProjectsSection() {
               {project.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="text-[9px] font-mono px-2 py-0.5 rounded-full border border-[--border] text-[--foreground]/30"
+                  className="text-[9px] font-mono px-2 py-0.5 rounded-full border border-(--border) text-(--foreground)/30"
                 >
                   {tag}
                 </span>
@@ -69,7 +69,7 @@ export function OtherProjectsSection() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="text-[--foreground]/25 hover:text-[--accent] transition-colors shrink-0"
+                className="text-(--foreground)/25 hover:text-(--accent) transition-colors shrink-0"
                 aria-label={`Ver ${project.title}`}
               >
                 <ExternalLink size={14} />
