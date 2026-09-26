@@ -21,6 +21,9 @@ import {
   hash,
   select,
   clamp,
+  texture,
+  positionLocal,
+  max,
 } from "three/tsl";
 
 const AVATAR_SRC = "/avatar.png";
@@ -48,6 +51,8 @@ interface ParticleData {
   /** Actual bounding half-extents of `positions`, for a cover-fit scale at render time. */
   boundsHalfWidth: number;
   boundsHalfHeight: number;
+  /** Source photo's width/height, so the hover-reveal plane matches its proportions exactly. */
+  aspect: number;
 }
 
 const EDGE_RADIUS = 3;
@@ -173,6 +178,7 @@ async function buildTargetPositions(): Promise<ParticleData> {
     count: positions.length / 3,
     boundsHalfWidth,
     boundsHalfHeight,
+    aspect,
   };
 }
 
@@ -182,6 +188,7 @@ function HologramPoints({
   count,
   boundsHalfWidth,
   boundsHalfHeight,
+  aspect,
 }: ParticleData) {
   const { gl, viewport, size } = useThree();
   const initialized = useRef(false);
@@ -234,7 +241,7 @@ function HologramPoints({
     };
   }, [gl]);
 
-  const { points, initCompute, updateCompute, mouseUniform, explosionUniform } = useMemo(() => {
+  const { group, initCompute, updateCompute, mouseUniform, explosionUniform } = useMemo(() => {
     const targetAttribute = new THREE.StorageInstancedBufferAttribute(positions, 3);
     const targetBuffer = storage(targetAttribute, "vec3", count);
     const edgeAttribute = new THREE.StorageInstancedBufferAttribute(edgeFactors, 1);
@@ -326,14 +333,43 @@ function HologramPoints({
     material.depthWrite = false;
 
     const pointsObject = new THREE.InstancedMesh(geometry, material, count);
+
+    // The real photo, hidden everywhere except a soft spot around the
+    // cursor/explosion — same radius, falloff and decay math as the
+    // particle dissolve above, so "what reveals" always matches "what
+    // scatters". Sized to the photo's real aspect so it lines up exactly
+    // with the particle cloud (both use the same SHAPE_SCALE mapping).
+    const photoTexture = new THREE.TextureLoader().load(AVATAR_SRC);
+    photoTexture.colorSpace = THREE.SRGBColorSpace;
+    const photoGeometry = new THREE.PlaneGeometry(2 * aspect * SHAPE_SCALE, 2 * SHAPE_SCALE);
+    const photoMaterial = new THREE.MeshBasicNodeMaterial();
+    const photoTexNode = texture(photoTexture);
+    photoMaterial.colorNode = photoTexNode.rgb;
+    const revealMouse = smoothstep(float(0.22), float(0.0), length(positionLocal.xy.sub(mouse)));
+    const revealExplosion = smoothstep(
+      float(0.5),
+      float(0.0),
+      length(positionLocal.xy.sub(explosion.xy))
+    ).mul(clamp(float(1.0).sub(explosion.z), float(0.0), float(1.0)));
+    photoMaterial.opacityNode = photoTexNode.a.mul(max(revealMouse, revealExplosion));
+    photoMaterial.transparent = true;
+    photoMaterial.depthWrite = false;
+    const photoMesh = new THREE.Mesh(photoGeometry, photoMaterial);
+    // Sits just behind the particles' own small z-jitter range so it never
+    // z-fights with them.
+    photoMesh.position.z = -0.03;
+
+    const group = new THREE.Group();
+    group.add(photoMesh, pointsObject);
+
     return {
-      points: pointsObject,
+      group,
       initCompute,
       updateCompute: update,
       mouseUniform: mouse,
       explosionUniform: explosion,
     };
-  }, [positions, edgeFactors, count]);
+  }, [positions, edgeFactors, count, aspect]);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -351,7 +387,7 @@ function HologramPoints({
     const coverScale =
       COVER_FIT_FACTOR *
       Math.min(viewport.width / (2 * boundsHalfWidth), viewport.height / (2 * boundsHalfHeight));
-    points.scale.setScalar(coverScale);
+    group.scale.setScalar(coverScale);
 
     // Anchor the figure's bottom AND right edges exactly on the HeroFrame
     // corner brackets (bottom-8/right-8 → 32px insets), converting that CSS
@@ -362,16 +398,16 @@ function HologramPoints({
     const insetWorld = FRAME_CORNER_INSET_PX * worldPerPixel;
     const desiredBottomWorld = -viewport.height / 2 + insetWorld;
     const figureBottomLocal = -boundsHalfHeight * coverScale;
-    points.position.setY(desiredBottomWorld - figureBottomLocal);
+    group.position.setY(desiredBottomWorld - figureBottomLocal);
     const desiredRightWorld = viewport.width / 2 - insetWorld;
     const figureRightLocal = boundsHalfWidth * coverScale;
-    points.position.setX(desiredRightWorld - figureRightLocal);
+    group.position.setX(desiredRightWorld - figureRightLocal);
 
     // Mouse position needs to be in the same pre-scale, pre-offset local
     // space that `current.xy` lives in inside the compute shader.
     mouseUniform.value.set(
-      ((mouseNdc.current.x * viewport.width) / 2 - points.position.x) / coverScale,
-      ((mouseNdc.current.y * viewport.height) / 2 - points.position.y) / coverScale
+      ((mouseNdc.current.x * viewport.width) / 2 - group.position.x) / coverScale,
+      ((mouseNdc.current.y * viewport.height) / 2 - group.position.y) / coverScale
     );
 
     // Explosion burst: same NDC→local conversion, plus how many seconds
@@ -383,8 +419,8 @@ function HologramPoints({
         explosionStartMs.current = null;
       } else {
         explosionUniform.value.set(
-          ((explosionClickNdc.current.x * viewport.width) / 2 - points.position.x) / coverScale,
-          ((explosionClickNdc.current.y * viewport.height) / 2 - points.position.y) / coverScale,
+          ((explosionClickNdc.current.x * viewport.width) / 2 - group.position.x) / coverScale,
+          ((explosionClickNdc.current.y * viewport.height) / 2 - group.position.y) / coverScale,
           ageSec
         );
       }
@@ -402,10 +438,10 @@ function HologramPoints({
       const halfW = boundsHalfWidth * coverScale;
       const halfH = boundsHalfHeight * coverScale;
       // 0..1 fraction of the canvas's own box (0 = left/bottom, 1 = right/top)
-      const leftFrac = 0.5 + (points.position.x - halfW) / viewport.width;
-      const rightFrac = 0.5 + (points.position.x + halfW) / viewport.width;
-      const topFrac = 0.5 - (points.position.y + halfH) / viewport.height;
-      const bottomFrac = 0.5 - (points.position.y - halfH) / viewport.height;
+      const leftFrac = 0.5 + (group.position.x - halfW) / viewport.width;
+      const rightFrac = 0.5 + (group.position.x + halfW) / viewport.width;
+      const topFrac = 0.5 - (group.position.y + halfH) / viewport.height;
+      const bottomFrac = 0.5 - (group.position.y - halfH) / viewport.height;
 
       const canvasEl = state.gl.domElement;
       const sectionEl = canvasEl.closest("section");
@@ -442,7 +478,7 @@ function HologramPoints({
     }
   });
 
-  return <primitive object={points} />;
+  return <primitive object={group} />;
 }
 
 export function HologramAvatar({ className }: { className?: string }) {
@@ -512,6 +548,7 @@ export function HologramAvatar({ className }: { className?: string }) {
           count={data.count}
           boundsHalfWidth={data.boundsHalfWidth}
           boundsHalfHeight={data.boundsHalfHeight}
+          aspect={data.aspect}
         />
       </Canvas>
     </div>
