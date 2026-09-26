@@ -24,12 +24,12 @@ import {
 } from "three/tsl";
 
 const AVATAR_SRC = "/avatar.png";
-const MAX_PARTICLES = 21000;
+const MAX_PARTICLES = 32000;
 const ALPHA_THRESHOLD = 40;
 // Uniform scale (never stretch X/Y independently — distorts the figure).
 // Cropping against the panel edges comes from camera zoom/offset instead.
 const SHAPE_SCALE = 1.55;
-const PARTICLE_SIZE = 0.004;
+const PARTICLE_SIZE = 0.0032;
 const PARTICLE_COLOR = "#9a9a9a";
 // < 1 backs off from a full edge-to-edge cover fit — 1.0 read as too big.
 const COVER_FIT_FACTOR = 0.9;
